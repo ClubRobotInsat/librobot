@@ -2,7 +2,6 @@
 #![warn(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unsafe_code)]
-#![feature(trace_macros)]
 
 //! Librairie du club
 
