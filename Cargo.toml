@@ -1,0 +1,6 @@
+[package]
+authors = ["Paul Florence <florencepaul@hotmail.fr>"]
+name = "librobot"
+version = "0.1.0"
+[dependencies]
+embedded-hal = "0.2.1"

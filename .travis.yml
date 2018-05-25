@@ -1,0 +1,9 @@
+language: rust
+rust:
+        - stable
+matrix:
+        fast_finish: true
+cache : cargo
+after_success:
+        cargo test;
+env : RUSTFLAGS="$RUSTFLAGS -D warnings"
