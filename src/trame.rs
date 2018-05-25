@@ -182,8 +182,8 @@ impl Trame {
     /// * `data_length` : `0`
     /// * `data` : `[]`
     pub fn new_ack(pnum: u8) -> Trame {
-        let t = trame!();
-        t.pnum = pnum;
+        let mut t = trame!();
+        t.pnum = Some(pnum);
         t
     }
 
