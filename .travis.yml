@@ -23,3 +23,5 @@ deploy:
         target-branch: master
         repo: ClubRobotInsat/librobot-github.io
         project-name: Documentation Librobot
+notifications:
+          email: false
