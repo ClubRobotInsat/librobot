@@ -19,7 +19,6 @@ deploy:
         github-token: $GITHUB_TOKEN  
         keep-history: false  
         local-dir: public
+        target-branch: master
         repo: https://github.com/ClubRobotInsat/librobot-github.io
-        on:
-                branch: master
         project-name: Documentation de librobot
