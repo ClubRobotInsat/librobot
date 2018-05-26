@@ -1,6 +1,7 @@
 language: rust
 rust:
         - stable
+        - nightly
 matrix:
         fast_finish: true
 cache : cargo
