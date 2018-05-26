@@ -54,11 +54,11 @@ impl<T> TrameReader<T> where T : Read<u8> {
         self.buffer.pop()
     }
 
-    pub fn read_byte(&mut self) {
+    fn read_byte(&mut self) {
 
     }
 
-    pub fn parse_byte(&mut self, byte : u8) {
+    fn parse_byte(&mut self, _byte : u8) {
 
     }
 }
@@ -67,7 +67,6 @@ impl<T> TrameReader<T> where T : Read<u8> {
 #[cfg(test)]
 mod test {
  
-    use trame::Trame;
     use trame_reader::*;
     use embedded_hal::serial::Read;
     use nb::Result;
