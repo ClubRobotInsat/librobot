@@ -8,7 +8,7 @@ after_success:
         - cargo test;
 env : RUSTFLAGS="$RUSTFLAGS -D warnings"
 before_deploy:
-        - cargo doc
+        - cargo +nightly doc
         - cp -r target/doc public/
         - pwd
         - ls
