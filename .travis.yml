@@ -7,3 +7,19 @@ cache : cargo
 after_success:
         cargo test;
 env : RUSTFLAGS="$RUSTFLAGS -D warnings"
+before_deploy:
+        - cargo doc
+        - cp -r target/doc public/
+        - pwd
+        - ls
+        - echo "<meta http-equiv=refresh content=0;url=librobot/index.html>" > public/index.html
+deploy:
+        provider: pages
+        skip-cleanup: true
+        github-token: $GITHUB_TOKEN  
+        keep-history: false  
+        local-dir: public
+        repo: https://github.com/ClubRobotInsat/librobot-github.io
+        on:
+                branch: master
+        project-name: Documentation de librobot
