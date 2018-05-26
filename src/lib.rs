@@ -6,13 +6,13 @@
 
 //! Librairie du club
 
-extern crate embedded_hal;
 extern crate arrayvec;
+extern crate embedded_hal;
 extern crate nb;
 
 pub mod trame;
-pub mod utils;
 pub mod trame_reader;
+pub mod utils;
 
 pub use trame::Trame;
 

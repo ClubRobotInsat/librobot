@@ -21,7 +21,32 @@ use utils::*;
 
 /// La structure de donnée qui est utilisée pour la communication en electronique.
 /// Pour la création d'une trame il vaut mieux utiliser la macro [trame!][macro@trame].
-#[derive(Debug, Default, Eq)]
+///
+/// # Exemple
+///
+/// Création et conversion d'une [Trame] pour l'envoi de données :
+///
+/// ```
+/// # #[macro_use]
+/// # extern crate librobot;
+/// # use librobot::trame::*;
+/// # fn main() {
+/// let t = trame!(0xFF,0x11,[0x55,0x66]);
+/// let (arr,size) = t.into();
+/// assert_eq!(&[0xAC,
+///             0xDC,
+///             0xAB,
+///             0xBA,
+///             0xFF,
+///             0x11,
+///             0x02,
+///             0x55,
+///             0x66],
+///             &arr[0..size])
+/// # }
+/// ```
+///
+#[derive(Copy, Clone, Debug, Default, Eq)]
 pub struct Trame {
     /// L'identifiant d'une trame.
     pub id: u8,
@@ -37,7 +62,9 @@ pub struct Trame {
 
 impl PartialEq for Trame {
     fn eq(&self, rhs: &Trame) -> bool {
-        self.id == rhs.id && self.cmd == rhs.cmd && self.pnum == rhs.pnum
+        self.id == rhs.id
+            && self.cmd == rhs.cmd
+            && self.pnum == rhs.pnum
             && self.data_length == rhs.data_length
             && self.data[0..self.data_length as usize] == rhs.data[0..rhs.data_length as usize]
     }
@@ -110,6 +137,9 @@ impl Trame {
     /// Permet de créer une nouvelle trame.
     ///
     /// # Exemple
+    ///
+    /// Création d'une [Trame] :
+    ///
     /// ```
     ///  # use librobot::trame::Trame;
     ///  let t1 = Trame::new(0x80,0xAA, None,0,[0,0,0,0,0,0,0,0]);
@@ -131,7 +161,7 @@ impl Trame {
         pnum: T,
         data_length: u8,
         data: [u8; 8],
-        ) -> Trame {
+    ) -> Trame {
         let mut t: Trame = Default::default();
         t.id = id;
         t.cmd = cmd;
@@ -212,7 +242,7 @@ impl Trame {
     }
 
     /// Permet de modifier facilement le numéro de paquet d'une [Trame].
-    /// 
+    ///
     /// # Exemple
     /// ```
     /// # #[macro_use]
@@ -226,7 +256,7 @@ impl Trame {
     /// trame.pnum = Some(0x96);
     /// # }
     /// ```
-    pub fn set_pnum<T : Into<Option<u8>>>(&mut self, val : T) {
+    pub fn set_pnum<T: Into<Option<u8>>>(&mut self, val: T) {
         self.pnum = val.into();
     }
 }
@@ -242,13 +272,47 @@ pub fn multiplex_id_cmd(id: u8, cmd: u8) -> (u8, u8) {
 /// en premier les bits de poids forts (ceux qu'on a lu en premier).
 pub fn demultiplex_id_cmd(first: u8, second: u8) -> (u8, u8) {
     let data = make_u16(first, second);
-    let id: u8 = (data.wrapping_shr(4)) as u8; 
+    let id: u8 = (data.wrapping_shr(4)) as u8;
     let cmd: u8 = (data as u8) & 0x0F;
     (id, cmd)
 }
 
 fn make_u16(high: u8, low: u8) -> u16 {
-        low as u16 + ((high as u16).wrapping_shr(8))
+    low as u16 + ((high as u16).wrapping_shr(8))
+}
+
+impl Into<([u8; 15], usize)> for Trame {
+    fn into(self) -> ([u8; 15], usize) {
+        // Taille du tableau : 3 octet de header
+        //                   + 1 octet de type
+        //                   + 1 octet d'id
+        //                   + 1 octet de commande
+        //                   + 1 octet pour la taille des données
+        //                   + `data_length` octet
+        //                   ---------------------
+        //                   = 7 + data_length octet
+        //                   = 7 + 8 au plus
+        //                   --------------------
+        //                   = 15 au plus
+        let arr = [
+            0xAC,
+            0xDC,
+            0xAB,
+            0xBA,
+            self.id,
+            self.cmd,
+            self.data_length,
+            self.data[0],
+            self.data[1],
+            self.data[2],
+            self.data[3],
+            self.data[4],
+            self.data[5],
+            self.data[6],
+            self.data[7],
+        ];
+        (arr, self.data_length as usize + 7)
+    }
 }
 
 #[cfg(test)]
@@ -267,7 +331,7 @@ mod test {
                 data_length: 3,
                 data: [0, 0, 0, 0, 0, 0, 0, 0]
             }
-            );
+        );
     }
 
     #[test]
@@ -279,16 +343,29 @@ mod test {
     fn trame_ack() {
         let mut result = trame!();
         result.set_pnum(0x96);
-        assert_eq!(Trame::new_ack(0x96),result);
+        assert_eq!(Trame::new_ack(0x96), result);
     }
 
-#[test]
-    fn test_multiplex_id_cmd() {
+    #[test]
+    fn trame_multiplex_id_cmd() {
         let (id, cmd) = (6, 9);
         let (m_id, m_cmd) = multiplex_id_cmd(id, cmd);
         let (c_id, c_cmd) = demultiplex_id_cmd(m_id, m_cmd);
         assert_eq!((id, cmd), (c_id, c_cmd));
     }
 
+    #[test]
+    fn trame_conversion() {
+        let t = trame!(0xFF, 0x11, [0x55, 0x66, 0x1, 2, 3, 4, 5, 6]);
+        let (arr, size) = t.into();
+        assert_eq!(
+            &[0xAC, 0xDC, 0xAB, 0xBA, 0xFF, 0x11, 8, 0x55, 0x66, 0x1, 2, 3, 4, 5, 6],
+            &arr[0..size]
+        );
+        let t = trame!(0xDD,0xCC);
+        let (arr, size) = t.into();
+        assert_eq!(&[0xAC, 0xDC, 0xAB, 0xBA, 0xDD, 0xCC, 0],
+                   &arr[0..size]);
+    }
 
 }
