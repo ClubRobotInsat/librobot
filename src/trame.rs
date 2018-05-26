@@ -21,8 +21,6 @@ use utils::*;
 
 /// La structure de donnée qui est utilisée pour la communication en electronique.
 /// Pour la création d'une trame il vaut mieux utiliser la macro [trame!][macro@trame].
-///
-///
 #[derive(Debug, Default, Eq)]
 pub struct Trame {
     /// L'identifiant d'une trame.
@@ -133,7 +131,7 @@ impl Trame {
         pnum: T,
         data_length: u8,
         data: [u8; 8],
-    ) -> Trame {
+        ) -> Trame {
         let mut t: Trame = Default::default();
         t.id = id;
         t.cmd = cmd;
@@ -212,11 +210,50 @@ impl Trame {
             Err(())
         }
     }
+
+    /// Permet de modifier facilement le numéro de paquet d'une [Trame].
+    /// 
+    /// # Exemple
+    /// ```
+    /// # #[macro_use]
+    /// # extern crate librobot;
+    /// # use librobot::trame::Trame;
+    /// # fn main() {
+    /// let mut trame = trame!();
+    /// // Cette ligne est équivalente ...
+    /// trame.set_pnum(0x96);
+    /// // à celle là
+    /// trame.pnum = Some(0x96);
+    /// # }
+    /// ```
+    pub fn set_pnum<T : Into<Option<u8>>>(&mut self, val : T) {
+        self.pnum = val.into();
+    }
+}
+
+/// Multiplex l'ID et la commande pour la transmission. Le premier bit doit être écris en premier.
+pub fn multiplex_id_cmd(id: u8, cmd: u8) -> (u8, u8) {
+    let first = id.wrapping_shr(4) & 0x0F;
+    let second = (cmd & 0x0F) + id.wrapping_shl(4);
+    (first, second)
+}
+
+/// Demultiplex l'ID et la commande d'une trame que l'on viens de recevoir. Il faut passer
+/// en premier les bits de poids forts (ceux qu'on a lu en premier).
+pub fn demultiplex_id_cmd(first: u8, second: u8) -> (u8, u8) {
+    let data = make_u16(first, second);
+    let id: u8 = (data.wrapping_shr(4)) as u8; 
+    let cmd: u8 = (data as u8) & 0x0F;
+    (id, cmd)
+}
+
+fn make_u16(high: u8, low: u8) -> u16 {
+        low as u16 + ((high as u16).wrapping_shr(8))
 }
 
 #[cfg(test)]
 mod test {
-    use trame::Trame;
+    use trame::*;
 
     #[test]
     fn trame_macro() {
@@ -230,12 +267,28 @@ mod test {
                 data_length: 3,
                 data: [0, 0, 0, 0, 0, 0, 0, 0]
             }
-        );
+            );
     }
 
     #[test]
     fn trame_pong() {
         assert!(Trame::new_pong(5, None).is_pong());
     }
+
+    #[test]
+    fn trame_ack() {
+        let mut result = trame!();
+        result.set_pnum(0x96);
+        assert_eq!(Trame::new_ack(0x96),result);
+    }
+
+#[test]
+    fn test_multiplex_id_cmd() {
+        let (id, cmd) = (6, 9);
+        let (m_id, m_cmd) = multiplex_id_cmd(id, cmd);
+        let (c_id, c_cmd) = demultiplex_id_cmd(m_id, m_cmd);
+        assert_eq!((id, cmd), (c_id, c_cmd));
+    }
+
 
 }
