@@ -22,7 +22,7 @@ deploy:
         keep-history: false  
         local-dir: public
         target-branch: gh-pages
-        repo: ClubRobotInsat/
+        repo: ClubRobotInsat/librobot
         project-name: Documentation Librobot
         on:
                 branch: master
