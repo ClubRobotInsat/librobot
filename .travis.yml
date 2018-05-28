@@ -21,8 +21,8 @@ deploy:
         github-token: $GITHUB_TOKEN  
         keep-history: false  
         local-dir: public
-        target-branch: master
-        repo: ClubRobotInsat/librobot-github.io
+        target-branch: gh-pages
+        repo: ClubRobotInsat/
         project-name: Documentation Librobot
         on:
                 branch: master
