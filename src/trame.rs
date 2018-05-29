@@ -16,6 +16,37 @@
 //! |  Cmd sur 1 cotet                          | ?                 |
 //! |   Taille Donnée sur 1 octet Max : 8 octet | ?                 |
 //! | Donnée (max 8 octet)                      | [?,?,?,?,?,?,?,?] |
+//!
+//! # Exemple
+//!
+//! Voici un exemple de communication PC-Elec :
+//! ```c++
+//! +----------------+           +--------------------+
+//! |                |           |                    |
+//! |  Raspberry PI  |           |  Microcontrolleur  |
+//! |                |           |                    |
+//! +--------+-------+           +----------+---------+
+//!          |                              |
+//!          |  AC DC AB BA 01 05 06 00     |
+//!          | +--------------------------> |
+//!          |                              |
+//!          |  AC DC AB BB 01 00 00        |
+//!          | <--------------------------+ |
+//!          |                              |
+//!          |  AC DC AB BA 05 46 02 11 77  |
+//!          | <--------------------------+ |
+//!          |                              |
+//!          v(t)                           v(t)
+//! ```
+//!
+//! La première trame comporte un header `AC DC AB`, le type de trame (normal) `0xBA` puis le numéro de paquet `01`, un
+//! identifiant `05` une commande `06` et `00` données.
+//!
+//! Le microcontrolleur réponds alors avec une trame d'acquitement, son type est `BB` et il est
+//! suivi du numéro de paquet `01` et de deux octets nuls `00 00`.
+//!
+//! Enfin, après avoir traité la trame informatique, le microcontrolleur réponds à la commande `06`
+//! avec un message d'id `05`, de commande `46` et `02` données `11` et `77`.
 
 use utils::*;
 
