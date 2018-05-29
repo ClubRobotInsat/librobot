@@ -1,4 +1,4 @@
-#![no_std]
+//#![no_std]
 #![warn(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unsafe_code)]
@@ -10,6 +10,7 @@ extern crate arrayvec;
 extern crate embedded_hal;
 extern crate nb;
 
+#[macro_use]
 pub mod trame;
 pub mod trame_reader;
 pub mod utils;

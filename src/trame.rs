@@ -91,6 +91,9 @@ impl PartialEq for Trame {
 /// // Une trame avec un ID, une commande et 5 données : [1,2,3,4,5]
 /// let t3 = trame!(0xAA,0xBC,[1,2,3,4,5]);
 ///
+/// // Une trame avec un ID, une commande, un numéro de paquet et aucune donnée.
+/// let t4 = trame!(0xAA, 0xBC, 20, []);
+///
 /// assert_eq!(t1, Trame{id:0xAA,cmd:0xBC,..Trame::default()});
 ///
 /// assert_eq!(t2, Trame{id:0xAA,
@@ -103,7 +106,11 @@ impl PartialEq for Trame {
 ///                      data_length:5,
 ///                      data:[1,2,3,4,5,0,0,0],
 ///                      ..Trame::default()});
-///
+///                      
+/// assert_eq!(t4, Trame{id:0xAA,
+///                      cmd:0xBC,
+///                      pnum:Some(20),
+///                      ..Trame::default()});
 /// # }
 /// ```
 ///
@@ -129,6 +136,12 @@ macro_rules! trame {
         for i in $arr.iter() {
             let _ = t.push(*i);
         }
+        t
+    }};
+
+    ($id:expr, $cmd:expr, $pnum:expr, $arr:expr) => {{
+        let mut t = trame!($id, $cmd, $arr);
+        t.pnum = Some($pnum);
         t
     }};
 }
@@ -362,10 +375,9 @@ mod test {
             &[0xAC, 0xDC, 0xAB, 0xBA, 0xFF, 0x11, 8, 0x55, 0x66, 0x1, 2, 3, 4, 5, 6],
             &arr[0..size]
         );
-        let t = trame!(0xDD,0xCC);
+        let t = trame!(0xDD, 0xCC);
         let (arr, size) = t.into();
-        assert_eq!(&[0xAC, 0xDC, 0xAB, 0xBA, 0xDD, 0xCC, 0],
-                   &arr[0..size]);
+        assert_eq!(&[0xAC, 0xDC, 0xAB, 0xBA, 0xDD, 0xCC, 0], &arr[0..size]);
     }
 
 }
