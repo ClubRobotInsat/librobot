@@ -1,4 +1,4 @@
-//#![no_std]
+#![no_std]
 #![warn(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unsafe_code)]
@@ -15,6 +15,7 @@ pub mod trame;
 pub mod trame_reader;
 pub mod utils;
 
+pub use arrayvec;
 pub use trame::Trame;
 
 #[cfg(test)]
