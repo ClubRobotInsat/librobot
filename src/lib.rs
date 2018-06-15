@@ -6,7 +6,12 @@
 
 //! Librairie du club
 
-extern crate arrayvec;
+// On inclue la librairie standard pour s'en servir dans les tests !
+#[cfg(test)]
+#[macro_use]
+extern crate std;
+
+pub extern crate arrayvec;
 extern crate embedded_hal;
 extern crate nb;
 
@@ -15,7 +20,6 @@ pub mod trame;
 pub mod trame_reader;
 pub mod utils;
 
-pub use arrayvec;
 pub use trame::Trame;
 
 #[cfg(test)]
