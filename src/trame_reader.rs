@@ -107,7 +107,7 @@ impl TrameReader {
         }
     }
 
-    fn step(&mut self, byte: u8) {
+    pub fn step(&mut self, byte: u8) {
         use trame_reader::TrameReaderState::*;
         match self.state {
             H1 if byte == 0xAC => self.state = H2,
