@@ -1,5 +1,4 @@
 #![no_std]
-
 #![warn(missing_docs)]
 #![deny(missing_debug_implementations)]
 #![deny(unsafe_code)]
@@ -12,7 +11,7 @@
 #[macro_use]
 extern crate std;
 
-extern crate arrayvec;
+pub extern crate arrayvec;
 extern crate embedded_hal;
 extern crate nb;
 

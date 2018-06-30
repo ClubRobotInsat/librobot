@@ -107,6 +107,7 @@ impl TrameReader {
         }
     }
 
+    /// Fais avancer la machine à état d'un octet.
     pub fn step(&mut self, byte: u8) {
         use trame_reader::TrameReaderState::*;
         match self.state {
