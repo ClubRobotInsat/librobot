@@ -6,7 +6,7 @@ use arrayvec::ArrayVec;
 
 /// La taille du buffer interne dans lesquels sont stockés les [Trame]s lues par tous les
 /// [TrameReader].
-pub const TRAME_READER_INTERNAL_BUFFER_SIZE: usize = 2048;
+pub const TRAME_READER_INTERNAL_BUFFER_SIZE: usize = 64;
 
 #[derive(Debug)]
 pub(crate) enum TrameReaderState {
