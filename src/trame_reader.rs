@@ -6,7 +6,7 @@ use arrayvec::ArrayVec;
 
 /// La taille du buffer interne dans lesquels sont stockés les [Trame]s lues par tous les
 /// [TrameReader].
-pub const TRAME_READER_INTERNAL_BUFFER_SIZE: usize = 2048;
+pub const TRAME_READER_INTERNAL_BUFFER_SIZE: usize = 64;
 
 #[derive(Debug)]
 pub(crate) enum TrameReaderState {
@@ -107,7 +107,8 @@ impl TrameReader {
         }
     }
 
-    fn step(&mut self, byte: u8) {
+    /// Fais avancer la machine à état d'un octet.
+    pub fn step(&mut self, byte: u8) {
         use trame_reader::TrameReaderState::*;
         match self.state {
             H1 if byte == 0xAC => self.state = H2,
