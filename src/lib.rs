@@ -12,6 +12,7 @@
 extern crate std;
 
 pub extern crate arrayvec;
+extern crate libc;
 extern crate embedded_hal;
 extern crate nb;
 
@@ -19,6 +20,7 @@ extern crate nb;
 pub mod trame;
 pub mod trame_reader;
 pub mod utils;
+pub mod c_struct;
 
 pub use trame::Trame;
 
