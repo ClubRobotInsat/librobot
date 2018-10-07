@@ -1,4 +1,19 @@
 language: rust
+sudo: required
+
+addons:
+  apt:
+    sources:
+    - ubuntu-toolchain-r-test
+    packages:
+    - gcc-5
+    alternatives:
+      - alternative:
+        name: gcc
+        link: /usr/bin/gcc
+        path: /usr/bin/gcc-5
+        priority: 80
+
 rust:
         - stable
 matrix:
@@ -18,8 +33,8 @@ before_deploy:
 deploy:
         provider: pages
         skip-cleanup: true
-        github-token: $GITHUB_TOKEN  
-        keep-history: false  
+        github-token: $GITHUB_TOKEN
+        keep-history: false
         local-dir: public
         target-branch: gh-pages
         repo: ClubRobotInsat/librobot
