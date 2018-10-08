@@ -24,7 +24,7 @@ matrix:
 cache : cargo
 after_success:
         - cargo test;
-#env : RUSTFLAGS="$RUSTFLAGS -D warnings"
+env : RUSTFLAGS="$RUSTFLAGS -D warnings"
 before_deploy:
         - rustup install nightly
         - cargo +nightly doc

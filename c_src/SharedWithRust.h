@@ -86,7 +86,7 @@ typedef struct SharedMoving2019 {
 		MOVE_TURN_ABSOLUTE = 4,
 		MOVE_FORWARD_INFINITY = 5,
 		MOVE_BACKWARD_INFINITY = 6,
-	};
+	} move_type;
 
 	uint16_t pos_x;
 	uint16_t pos_y;
@@ -95,7 +95,6 @@ typedef struct SharedMoving2019 {
 	uint16_t angular_speed;
 
 	uint8_t reset; // Permets de définir de nouvelles coordonnées
-	enum MoveType move_type;
 	uint8_t blocked;
 	uint8_t moving_done;
 	uint8_t accuracy_reached;

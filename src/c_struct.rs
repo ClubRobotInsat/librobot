@@ -39,6 +39,7 @@ type ReadFunction<T> = unsafe extern "C" fn(*const uint8_t, uint8_t) -> T;
 
 /// Permets de récupérer le type des structures pour un joli affichage dans les fonctions de parsing
 pub trait TypeInfo {
+    /// Retourne un string qui représente la nature de la structure
     fn type_of(&self) -> &'static str;
 }
 
@@ -253,9 +254,12 @@ where
 }
 
 // TODO : Documentation
+/// Erreur levée lorsqu'un problème de parsing intervient en C
 #[derive(Debug)]
 pub enum ErrorParsing {
+    /// La trame fournie en lecture est mal définie
     BadPadding,
+    /// Le buffer fourni pour écrire une trame est trop petit
     BufferTooSmall,
 }
 
