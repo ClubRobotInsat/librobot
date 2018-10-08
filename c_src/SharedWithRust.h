@@ -42,7 +42,7 @@ typedef struct SharedServos2019 {
 
 typedef struct SharedMotors2019 {
 	struct ControlledMotor2019 {
-		uint8_t id;
+		uint8_t id; // `id == 0` veut dire qu'il n'y a pas de moteur
 		uint8_t wanted_angle_position;
 		uint8_t wanted_nb_turns;
 		uint8_t finished;
@@ -50,13 +50,13 @@ typedef struct SharedMotors2019 {
 	} controlled_motors[MAX_CONTROLLED_MOTORS];
 
 	struct UncontrolledMotor2019 {
-		uint8_t id;
+		uint8_t id; // `id == 0` veut dire qu'il n'y a pas de moteur
 		uint8_t on_off;
 		uint8_t rotation;
 	} uncontrolled_motors[MAX_UNCONTROLLED_MOTORS];
 
 	struct Brushless2019 {
-		uint8_t id;
+		uint8_t id; // `id == 0` veut dire qu'il n'y a pas de brushless
 		uint8_t on_off;
 	} brushless[MAX_BRUSHLESS];
 

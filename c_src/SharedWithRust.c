@@ -11,6 +11,7 @@
 SharedServos2019 servo_read_frame(const uint8_t* message, uint8_t size) {
 	SharedServos2019 s;
 
+	// Contrôle de la taille du flux d'octet reçu
 	if(message == NULL || size == 0) {
 		s.parsing_failed = 1;
 		return s;
@@ -23,38 +24,50 @@ SharedServos2019 servo_read_frame(const uint8_t* message, uint8_t size) {
 		return s;
 	}
 
-	for(uint8_t i = 0; i < MAX_SERVOS; ++i) {
-		s.servos[i].id = 0;
+	// Initialisation de la struct
+	for(uint8_t index = 0; index < MAX_SERVOS; ++index) {
+		s.servos[index].id = 0;
 	}
 
-	for(int i = 0; i < nb_servo; ++i) {
+	// Parsing de chaque servo-moteur
+	for(uint8_t index = 0; index < nb_servo; ++index) {
 		uint8_t id = message[count++];
 
-		if(id == 0 || id >= MAX_SERVOS) {
+		// Contrôle de l'ID
+		if(id == 0) {
 			s.parsing_failed = 1;
 			return s;
 		}
+		for (uint8_t j = 0; j < MAX_SERVOS; ++j) {
+			// L'ID doit être unique
+			if (s.servos[j].id == id) {
+				s.parsing_failed = 1;
+				return s;
+			}
+		}
 
-		s.servos[id].id = id;
+		// Reconstruction du servo-moteur `id`
+		s.servos[index].id = id;
 
 		uint16_t position = message[count++];
 		position <<= 8;
 		position |= message[count++];
-		s.servos[id].position = position;
+		s.servos[index].position = position;
 
 		uint16_t wanted_position = message[count++];
 		wanted_position <<= 8;
 		wanted_position |= message[count++];
-		s.servos[id].wanted_position = wanted_position;
+		s.servos[index].wanted_position = wanted_position;
 
-		s.servos[id].speed = message[count++];
+		s.servos[index].speed = message[count++];
 
 		uint8_t infos = message[count++];
-		s.servos[id].blocked = (char)((0b00010000 & infos) >> 4);
-		s.servos[id].blocking_mode = (uint8_t)((0b00001000 & infos) >> 3);
-		s.servos[id].color = (uint8_t)(0b00000111 & infos);
+		s.servos[index].blocked = (char)((0b00010000 & infos) >> 4);
+		s.servos[index].blocking_mode = (uint8_t)((0b00001000 & infos) >> 3);
+		s.servos[index].color = (uint8_t)(0b00000111 & infos);
 	}
 
+	// Tout s'est bien passé
 	s.parsing_failed = 0;
 	return s;
 }
@@ -63,6 +76,7 @@ uint8_t servo_write_frame(uint8_t* buf, uint8_t buf_size, const SharedServos2019
 	uint8_t size = 0;
 	uint8_t nb_servo = 0;
 
+	// Contrôle du buffer alloué
 	if(buf == NULL || obj == NULL || buf_size == 0) {
 		return 0;
 	}
@@ -78,24 +92,26 @@ uint8_t servo_write_frame(uint8_t* buf, uint8_t buf_size, const SharedServos2019
 		return 0;
 	}
 
+	// Écriture des données de chaque servo-moteur
 	buf[size++] = nb_servo;
-	for(uint8_t id = 0; id < MAX_SERVOS; ++id) {
-		if(obj->servos[id].id > 0) {
-			buf[size++] = obj->servos[id].id;
+	for(uint8_t index = 0; index < MAX_SERVOS; ++index) {
+		// Le servo-moteur d'index
+		if(obj->servos[index].id > 0) {
+			buf[size++] = obj->servos[index].id;
 
-			buf[size++] = (uint8_t)((UINT8_MAX - ((0xff00 & obj->servos[id].position) >> 8)) ^ UINT8_MAX);
-			buf[size++] = (uint8_t)((UINT8_MAX - obj->servos[id].position) ^ UINT8_MAX);
+			buf[size++] = (uint8_t)((UINT8_MAX - ((0xff00 & obj->servos[index].position) >> 8)) ^ UINT8_MAX);
+			buf[size++] = (uint8_t)((UINT8_MAX - obj->servos[index].position) ^ UINT8_MAX);
 
-			buf[size++] = (uint8_t)((UINT8_MAX - ((0xff00 & obj->servos[id].wanted_position) >> 8)) ^ UINT8_MAX);
-			buf[size++] = (uint8_t)((UINT8_MAX - obj->servos[id].wanted_position) ^ UINT8_MAX);
+			buf[size++] = (uint8_t)((UINT8_MAX - ((0xff00 & obj->servos[index].wanted_position) >> 8)) ^ UINT8_MAX);
+			buf[size++] = (uint8_t)((UINT8_MAX - obj->servos[index].wanted_position) ^ UINT8_MAX);
 
-			buf[size++] = obj->servos[id].speed;
+			buf[size++] = obj->servos[index].speed;
 
-			uint8_t infos = (uint8_t)obj->servos[id].blocked;
+			uint8_t infos = (uint8_t)obj->servos[index].blocked;
 			infos <<= 1;
-			infos |= obj->servos[id].blocking_mode;
+			infos |= obj->servos[index].blocking_mode;
 			infos <<= 3;
-			infos |= obj->servos[id].color;
+			infos |= obj->servos[index].color;
 			buf[size++] = infos;
 		}
 	}
@@ -134,47 +150,47 @@ SharedMotors2019 motor_read_frame(const uint8_t* message, uint8_t size) {
 		s.brushless[i].id = 0;
 	}
 
-	for(int i = 0; i < nb_controlled; ++i) {
+	for(uint8_t index = 0; index < nb_controlled; ++index) {
 		uint8_t id = message[count++];
 
-		if(id == 0 || id >= MAX_CONTROLLED_MOTORS) {
+		if(id == 0) {
 			s.parsing_failed = 1;
 			return s;
 		}
 
-		s.controlled_motors[id].id = id;
-		s.controlled_motors[id].wanted_angle_position = message[count++];
-		s.controlled_motors[id].wanted_nb_turns = message[count++];
+		s.controlled_motors[index].id = id;
+		s.controlled_motors[index].wanted_angle_position = message[count++];
+		s.controlled_motors[index].wanted_nb_turns = message[count++];
 
 		uint8_t infos = message[count++];
-		s.controlled_motors[id].finished = (uint8_t)((0b00000010 & infos) >> 1);
-		s.controlled_motors[id].new_command = (uint8_t)(0b00000001 & infos);
+		s.controlled_motors[index].finished = (uint8_t)((0b00000010 & infos) >> 1);
+		s.controlled_motors[index].new_command = (uint8_t)(0b00000001 & infos);
 	}
 
-	for(int i = 0; i < nb_uncontrolled; ++i) {
+	for(uint8_t index = 0; index < nb_uncontrolled; ++index) {
 		uint8_t id = message[count++];
 
-		if(id == 0 || id >= MAX_CONTROLLED_MOTORS) {
+		if(id == 0) {
 			s.parsing_failed = 1;
 			return s;
 		}
 
-		s.uncontrolled_motors[id].id = id;
+		s.uncontrolled_motors[index].id = id;
 		uint8_t infos = message[count++];
-		s.uncontrolled_motors[id].on_off = (uint8_t)((0b00000010 & infos) >> 1);
-		s.uncontrolled_motors[id].rotation = (uint8_t)(0b00000001 & infos);
+		s.uncontrolled_motors[index].on_off = (uint8_t)((0b00000010 & infos) >> 1);
+		s.uncontrolled_motors[index].rotation = (uint8_t)(0b00000001 & infos);
 	}
 
-	for(int i = 0; i < nb_brushless; ++i) {
+	for(uint8_t index = 0; index < nb_brushless; ++index) {
 		uint8_t id = message[count++];
 
-		if(id == 0 || id >= MAX_CONTROLLED_MOTORS) {
+		if(id == 0) {
 			s.parsing_failed = 1;
 			return s;
 		}
 
-		s.brushless[id].id = id;
-		s.brushless[id].on_off = message[count++];
+		s.brushless[index].id = id;
+		s.brushless[index].on_off = message[count++];
 	}
 
 	s.parsing_failed = 0;
@@ -192,20 +208,20 @@ uint8_t motor_write_frame(uint8_t* buf, uint8_t buf_size, const SharedMotors2019
 	}
 
 	// Compte de chaque type de moteurs
-	for(uint8_t id = 0; id < MAX_CONTROLLED_MOTORS; ++id) {
-		if(obj->controlled_motors[id].id > 0) {
+	for(uint8_t index = 0; index < MAX_CONTROLLED_MOTORS; ++index) {
+		if(obj->controlled_motors[index].id > 0) {
 			++nb_controlled;
 		}
 	}
 
-	for(uint8_t id = 0; id < MAX_UNCONTROLLED_MOTORS; ++id) {
-		if(obj->uncontrolled_motors[id].id > 0) {
+	for(uint8_t index = 0; index < MAX_UNCONTROLLED_MOTORS; ++index) {
+		if(obj->uncontrolled_motors[index].id > 0) {
 			++nb_uncontrolled;
 		}
 	}
 
-	for(uint8_t id = 0; id < MAX_BRUSHLESS; ++id) {
-		if(obj->brushless[id].id > 0) {
+	for(uint8_t index = 0; index < MAX_BRUSHLESS; ++index) {
+		if(obj->brushless[index].id > 0) {
 			++nb_brushless;
 		}
 	}
@@ -220,36 +236,36 @@ uint8_t motor_write_frame(uint8_t* buf, uint8_t buf_size, const SharedMotors2019
 	buf[size++] = nb_uncontrolled;
 	buf[size++] = nb_brushless;
 
-	for(uint8_t id = 0; id < MAX_CONTROLLED_MOTORS; ++id) {
-		if(obj->controlled_motors[id].id > 0) {
-			buf[size++] = obj->controlled_motors[id].id;
+	for(uint8_t index = 0; index < MAX_CONTROLLED_MOTORS; ++index) {
+		if(obj->controlled_motors[index].id > 0) {
+			buf[size++] = obj->controlled_motors[index].id;
 
-			buf[size++] = obj->controlled_motors[id].wanted_angle_position;
-			buf[size++] = obj->controlled_motors[id].wanted_nb_turns;
+			buf[size++] = obj->controlled_motors[index].wanted_angle_position;
+			buf[size++] = obj->controlled_motors[index].wanted_nb_turns;
 
-			uint8_t infos = obj->controlled_motors[id].finished;
+			uint8_t infos = obj->controlled_motors[index].finished;
 			infos <<= 1;
-			infos |= obj->controlled_motors[id].new_command;
+			infos |= obj->controlled_motors[index].new_command;
 			buf[size++] = infos;
 		}
 	}
 
-	for(uint8_t id = 0; id < MAX_UNCONTROLLED_MOTORS; ++id) {
-		if(obj->uncontrolled_motors[id].id > 0) {
-			buf[size++] = obj->uncontrolled_motors[id].id;
+	for(uint8_t index = 0; index < MAX_UNCONTROLLED_MOTORS; ++index) {
+		if(obj->uncontrolled_motors[index].id > 0) {
+			buf[size++] = obj->uncontrolled_motors[index].id;
 
-			uint8_t infos = obj->uncontrolled_motors[id].on_off;
+			uint8_t infos = obj->uncontrolled_motors[index].on_off;
 			infos <<= 1;
-			infos |= obj->uncontrolled_motors[id].rotation;
+			infos |= obj->uncontrolled_motors[index].rotation;
 			buf[size++] = infos;
 		}
 	}
 
-	for(uint8_t id = 0; id < MAX_BRUSHLESS; ++id) {
-		if(obj->brushless[id].id > 0) {
-			buf[size++] = obj->brushless[id].id;
+	for(uint8_t index = 0; index < MAX_BRUSHLESS; ++index) {
+		if(obj->brushless[index].id > 0) {
+			buf[size++] = obj->brushless[index].id;
 
-			buf[size++] = obj->brushless[id].on_off;
+			buf[size++] = obj->brushless[index].on_off;
 		}
 	}
 
