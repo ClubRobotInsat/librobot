@@ -5,7 +5,7 @@
 #include "SharedWithRust.h"
 #include <stddef.h>
 
-#define FRAME_SERVO_SIZE(number) (1 + (number)*7)
+#define FRAME_SERVO_SIZE(number) (1 + (number)*6)
 #define FRAME_MOTOR_SIZE(controlled, uncontrolled, brushless) (3 + (controlled)*4 + (uncontrolled)*2 + (brushless)*2)
 
 SharedServos2019 servo_read_frame(const uint8_t* message, uint8_t size) {
@@ -54,14 +54,13 @@ SharedServos2019 servo_read_frame(const uint8_t* message, uint8_t size) {
 		position |= message[count++];
 		s.servos[index].position = position;
 
-		uint16_t wanted_position = message[count++];
-		wanted_position <<= 8;
-		wanted_position |= message[count++];
-		s.servos[index].wanted_position = wanted_position;
-
-		s.servos[index].speed = message[count++];
+		uint16_t command = message[count++];
+		command <<= 8;
+		command |= message[count++];
+		s.servos[index].command = command;
 
 		uint8_t infos = message[count++];
+		s.servos[index].command_type = (uint8_t)((0b00100000 & infos) >> 5);
 		s.servos[index].blocked = (char)((0b00010000 & infos) >> 4);
 		s.servos[index].blocking_mode = (uint8_t)((0b00001000 & infos) >> 3);
 		s.servos[index].color = (uint8_t)(0b00000111 & infos);
@@ -102,12 +101,17 @@ uint8_t servo_write_frame(uint8_t* buf, uint8_t buf_size, const SharedServos2019
 			buf[size++] = (uint8_t)((UINT8_MAX - ((0xff00 & obj->servos[index].position) >> 8)) ^ UINT8_MAX);
 			buf[size++] = (uint8_t)((UINT8_MAX - obj->servos[index].position) ^ UINT8_MAX);
 
-			buf[size++] = (uint8_t)((UINT8_MAX - ((0xff00 & obj->servos[index].wanted_position) >> 8)) ^ UINT8_MAX);
-			buf[size++] = (uint8_t)((UINT8_MAX - obj->servos[index].wanted_position) ^ UINT8_MAX);
+			buf[size++] = (uint8_t)((UINT8_MAX - ((0xff00 & obj->servos[index].command) >> 8)) ^ UINT8_MAX);
+			buf[size++] = (uint8_t)((UINT8_MAX - obj->servos[index].command) ^ UINT8_MAX);
 
-			buf[size++] = obj->servos[index].speed;
-
-			uint8_t infos = (uint8_t)obj->servos[index].blocked;
+			// Format de l'octet de données : [0b76543210]
+			// index '210' : couleur
+			// index '3' : blocking_mode
+			// index '4' : blocked
+			// index '5' : command_type
+			uint8_t infos = obj->servos[index].command_type;
+			infos <<= 1;
+			infos |= obj->servos[index].blocked;
 			infos <<= 1;
 			infos |= obj->servos[index].blocking_mode;
 			infos <<= 3;

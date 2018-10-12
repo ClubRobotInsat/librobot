@@ -52,10 +52,10 @@ pub struct Servo2019 {
     id: libc::uint8_t,
     /// Position actuelle du servo-moteur.
     position: libc::uint16_t,
-    /// Ordre de position donné par l'informatique.
-    wanted_position: libc::uint16_t,
-    /// Ordre de vitesse donné par l'informatique.
-    speed: libc::uint8_t,
+    /// Ordre de position ou de vitesse donné par l'informatique.
+    command: libc::uint16_t,
+    /// Si égal à 0, la commande est en position ; si égal à 1 il s'agit d'un ordre de vitesse.
+    command_type: libc::uint8_t,
     /// Si égal à 1, alors le servo-moteur est bloqué (il force).
     blocked: libc::c_char,
     /// HOLD_ON_BLOCKING = 1, UNBLOCKING = 0
@@ -80,8 +80,9 @@ impl PartialEq for Servo2019 {
     fn eq(&self, other: &Servo2019) -> bool {
         self.id == other.id
             && (self.id == 0
-                || (self.position == other.position && self.wanted_position == other.wanted_position
-                    && self.speed == other.speed
+                || (self.position == other.position
+                    && self.command == other.command
+                    && self.command_type == other.command_type
                     && self.blocked == other.blocked
                     && self.blocking_mode == other.blocking_mode
                     && self.color == other.color))

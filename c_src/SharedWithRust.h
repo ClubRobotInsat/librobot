@@ -29,8 +29,9 @@ typedef struct SharedServos2019 {
 	struct Servo2019 {
 		uint8_t id; // 'id == 0' veut dire qu'il n'y a pas de servo-moteur
 		uint16_t position;
-		uint16_t wanted_position;
-		uint8_t speed;
+		// La commande est une vitesse OU un angle, le choix est fait depuis le booléen 'command'
+		uint16_t command;
+		uint8_t command_type; // si 0, la commande est en angle ; si 1, la commande est en vitesse
 		char blocked;
 		uint8_t blocking_mode;
 		uint8_t color;
@@ -108,7 +109,7 @@ typedef struct SharedMoving2019 {
 
 // Format d'une trame :
 // <nb_servo: u8>
-// <[<id: u8> <position: u16> <wanted_position: u16> <speed: u8> <blocking data, color: u8>] ...>
+// <[<id: u8> <position: u16> <command: u16> <command_type, blocking data, color: u8>] ...>
 extern SharedServos2019 servo_read_frame(const uint8_t* message, uint8_t size);
 extern uint8_t servo_write_frame(uint8_t* buf, uint8_t buf_size, const SharedServos2019* obj);
 
