@@ -107,7 +107,7 @@ typedef struct SharedMoving2019 {
 
 /// Fonctions définies en C et utilisées à la fois dans le code C++ et Rust
 
-typedef uint16_t buffer_size_t;
+typedef uint8_t buffer_size_t;
 
 // Format d'une trame :
 // <nb_servo: u8>
