@@ -158,7 +158,8 @@ impl TrameReader {
                 data_length,
                 mut data,
                 current_index,
-            } if current_index < data_length - 1 =>
+            }
+                if current_index < data_length - 1 =>
             {
                 data[current_index as usize] = byte;
                 self.state = Data {
@@ -178,7 +179,8 @@ impl TrameReader {
                 data_length,
                 mut data,
                 current_index,
-            } if current_index == data_length - 1 =>
+            }
+                if current_index == data_length - 1 =>
             {
                 data[current_index as usize] = byte;
                 let t: Trame = Trame::new(id, cmd, Some(pnum), data_length, data);
