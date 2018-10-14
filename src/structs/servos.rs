@@ -1,9 +1,9 @@
 //! Représentation haut-niveau d'un servo-moteur
 //! Un `Servo2019` peut être créé à partir de la représentation C d'un servo-moteur
 
-use structs::c_struct::{CSharedServos2019};
-use structs::c_struct::{ErrorParsing, FrameParsingTrait, MsgVec};
 use arrayvec::ArrayVec;
+use structs::c_struct::CSharedServos2019;
+use structs::c_struct::{ErrorParsing, FrameParsingTrait, MsgVec};
 
 /// Représentation haut niveau d'un unique servo-moteur
 #[derive(Debug, Copy, Clone)]
@@ -34,11 +34,11 @@ impl PartialEq for Servo2019 {
     fn eq(&self, other: &Servo2019) -> bool {
         self.id == other.id
             && (self.id == 0
-            || (self.position == other.position
-            && self.control == other.control
-            && self.blocked == other.blocked
-            && self.mode == other.mode
-            && self.color == other.color))
+                || (self.position == other.position
+                    && self.control == other.control
+                    && self.blocked == other.blocked
+                    && self.mode == other.mode
+                    && self.color == other.color))
     }
 }
 
@@ -60,7 +60,7 @@ pub enum Control {
     /// Commande en vitesse.
     Speed(u16),
     /// Commande en position.
-    Position(u16)
+    Position(u16),
 }
 
 /// Couleur émise par le servo-moteur.
@@ -85,38 +85,39 @@ pub enum Color {
 }
 
 impl Servos2019 {
-    fn new(from_data : MsgVec) -> Self {
-        let read_servos : Result<CSharedServos2019, ErrorParsing> = FrameParsingTrait::read_frame(from_data);
+    fn new(from_data: MsgVec) -> Self {
+        let read_servos: Result<CSharedServos2019, ErrorParsing> =
+            FrameParsingTrait::read_frame(from_data);
         match read_servos {
             Ok(s) => s.into(),
             Err(..) => Servos2019 {
-                list : ArrayVec::<[Servo2019; 8]>::new(),
-            }
+                list: ArrayVec::<[Servo2019; 8]>::new(),
+            },
         }
     }
 }
 
 impl Into<Servos2019> for CSharedServos2019 {
     fn into(self) -> Servos2019 {
-        let mut array : ArrayVec<[Servo2019; 8]> = ArrayVec::<[Servo2019; 8]>::new();
+        let mut array: ArrayVec<[Servo2019; 8]> = ArrayVec::<[Servo2019; 8]>::new();
 
         for servo in self.servos.iter() {
             array.push(Servo2019 {
-                id : servo.id,
+                id: servo.id,
                 /// Cette variable depuis l'informatique n'est pas intéressante
-                position : 0,
-                control : match servo.command_type {
+                position: 0,
+                control: match servo.command_type {
                     0 => Control::Position(servo.command),
                     1 => Control::Speed(servo.command),
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 },
-                blocked : servo.blocked != 0,
-                mode : match servo.blocking_mode {
+                blocked: servo.blocked != 0,
+                mode: match servo.blocking_mode {
                     x if x == BlockingMode::Unblocking as u8 => BlockingMode::Unblocking,
                     x if x == BlockingMode::HoldOnblock as u8 => BlockingMode::HoldOnblock,
-                    _ => unreachable!()
+                    _ => unreachable!(),
                 },
-                color : match servo.color {
+                color: match servo.color {
                     x if x == Color::BLACK as u8 => Color::BLACK,
                     x if x == Color::RED as u8 => Color::RED,
                     x if x == Color::GREEN as u8 => Color::GREEN,
@@ -125,12 +126,10 @@ impl Into<Servos2019> for CSharedServos2019 {
                     x if x == Color::MAGENTA as u8 => Color::MAGENTA,
                     x if x == Color::CYAN as u8 => Color::CYAN,
                     x if x == Color::WHITE as u8 => Color::WHITE,
-                    _ => unreachable!() // réception de 3 bits seulement, soit 7 au maximum
-                }
+                    _ => unreachable!(), // réception de 3 bits seulement, soit 7 au maximum
+                },
             });
         }
-        Servos2019 {
-            list: array,
-        }
+        Servos2019 { list: array }
     }
 }
