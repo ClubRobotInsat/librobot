@@ -1,0 +1,37 @@
+# Cargo build options
+# https://doc.rust-lang.org/cargo/reference/config.html
+
+[target.thumbv7m-none-eabi]
+runner = 'arm-none-eabi-gdb'
+# Select GNU linker:
+# linker = "arm-none-eabi-ld"
+# ar = "arm-none-eabi-ar"
+rustflags = [
+  # Don't link with default start files.
+  # "-C", "link-arg=-nostartfiles",
+
+  # Select ar linker: (default)
+  #"-C", "link-arg=-Wl,-Tlink.x",
+
+  # OR Select GNU linker:
+  # "-C", "linker=arm-none-eabi-ld",
+  # "-C", "ar=arm-none-eabi-ar",
+  # "-C", "link-arg=-Tlink.x",
+  # "-Z", "linker-flavor=ld",
+  # "-Z", "thinlto=no",
+
+  # OR Select rustc LLD linker (a)
+   "-C", "link-arg=-Tlink.x",
+   "-C", "linker=rust-lld",
+   "-Z", "linker-flavor=ld.lld",
+
+  # (a) you also need to comment out the other two `link-arg` lines. But note that as of v0.6.0 LLD
+  # has a bug where it mislinks FFI calls and they up crashing the program at runtime[build]
+
+  # Show the expansion of macros.
+  # "-Z", "unstable-options", "--pretty=expanded",
+]
+
+[build]
+# By default, build for ARM Cortex-M3 CPU.
+target = "thumbv7m-none-eabi"
