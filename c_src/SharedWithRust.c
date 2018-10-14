@@ -8,7 +8,7 @@
 #define FRAME_SERVO_SIZE(number) (1 + (number)*6)
 #define FRAME_MOTOR_SIZE(controlled, uncontrolled, brushless) (3 + (controlled)*4 + (uncontrolled)*2 + (brushless)*2)
 
-SharedServos2019 servo_read_frame(const uint8_t* message, uint8_t size) {
+SharedServos2019 servo_read_frame(const uint8_t* message, buffer_size_t size) {
 	SharedServos2019 s;
 
 	// Contrôle de la taille du flux d'octet reçu
@@ -71,8 +71,8 @@ SharedServos2019 servo_read_frame(const uint8_t* message, uint8_t size) {
 	return s;
 }
 
-uint8_t servo_write_frame(uint8_t* buf, uint8_t buf_size, const SharedServos2019* obj) {
-	uint8_t size = 0;
+buffer_size_t servo_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedServos2019* obj) {
+    buffer_size_t size = 0;
 	uint8_t nb_servo = 0;
 
 	// Contrôle du buffer alloué
@@ -125,7 +125,7 @@ uint8_t servo_write_frame(uint8_t* buf, uint8_t buf_size, const SharedServos2019
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-SharedMotors2019 motor_read_frame(const uint8_t* message, uint8_t size) {
+SharedMotors2019 motor_read_frame(const uint8_t* message, buffer_size_t size) {
 	SharedMotors2019 s;
 
 	if(message == NULL || size < 3) {
@@ -201,8 +201,8 @@ SharedMotors2019 motor_read_frame(const uint8_t* message, uint8_t size) {
 	return s;
 }
 
-uint8_t motor_write_frame(uint8_t* buf, uint8_t buf_size, const SharedMotors2019* obj) {
-	uint8_t size = 0;
+buffer_size_t motor_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedMotors2019* obj) {
+    buffer_size_t size = 0;
 	uint8_t nb_controlled = 0;
 	uint8_t nb_uncontrolled = 0;
 	uint8_t nb_brushless = 0;
@@ -278,19 +278,19 @@ uint8_t motor_write_frame(uint8_t* buf, uint8_t buf_size, const SharedMotors2019
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-SharedAvoidance2019 avoidance_read_frame(const uint8_t* message, uint8_t size) {
+SharedAvoidance2019 avoidance_read_frame(const uint8_t* message, buffer_size_t size) {
 	SharedAvoidance2019 s;
 	s.parsing_failed = 1;
 	return s;
 }
 
-uint8_t avoidance_write_frame(uint8_t* buf, uint8_t buf_size, const SharedAvoidance2019* obj) {
+buffer_size_t avoidance_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedAvoidance2019* obj) {
 	return 0;
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-SharedIO2019 io_read_frame(const uint8_t* message, uint8_t size) {
+SharedIO2019 io_read_frame(const uint8_t* message, buffer_size_t size) {
 	SharedIO2019 s;
 
 	if(message == NULL || size == 0) {
@@ -304,7 +304,7 @@ SharedIO2019 io_read_frame(const uint8_t* message, uint8_t size) {
 	return s;
 }
 
-uint8_t io_write_frame(uint8_t* buf, uint8_t buf_size, const SharedIO2019* obj) {
+buffer_size_t io_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedIO2019* obj) {
 	if(buf == NULL || obj == NULL || buf_size == 0) {
 		return 0;
 	}
@@ -315,12 +315,12 @@ uint8_t io_write_frame(uint8_t* buf, uint8_t buf_size, const SharedIO2019* obj) 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-SharedMoving2019 moving_read_frame(const uint8_t* message, uint8_t size) {
+SharedMoving2019 moving_read_frame(const uint8_t* message, buffer_size_t size) {
 	SharedMoving2019 s;
 	s.parsing_failed = 1;
 	return s;
 }
 
-uint8_t moving_write_frame(uint8_t* buf, uint8_t buf_size, const SharedMoving2019* obj) {
+buffer_size_t moving_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedMoving2019* obj) {
 	return 0;
 }

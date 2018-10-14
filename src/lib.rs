@@ -20,8 +20,8 @@ extern crate nb;
 pub mod trame;
 pub mod trame_reader;
 pub mod utils;
-pub mod c_struct;
-
+pub mod structs;
+pub use structs::servos::Servos2019;
 pub use trame::Trame;
 
 #[cfg(test)]

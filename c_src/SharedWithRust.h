@@ -107,11 +107,13 @@ typedef struct SharedMoving2019 {
 
 /// Fonctions définies en C et utilisées à la fois dans le code C++ et Rust
 
+typedef uint16_t buffer_size_t;
+
 // Format d'une trame :
 // <nb_servo: u8>
 // <[<id: u8> <position: u16> <command: u16> <command_type, blocking data, color: u8>] ...>
-extern SharedServos2019 servo_read_frame(const uint8_t* message, uint8_t size);
-extern uint8_t servo_write_frame(uint8_t* buf, uint8_t buf_size, const SharedServos2019* obj);
+extern SharedServos2019 servo_read_frame(const uint8_t* message, buffer_size_t size);
+extern buffer_size_t servo_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedServos2019* obj);
 
 // Format d'une trame :
 // <nb_controlled: u8>
@@ -120,21 +122,21 @@ extern uint8_t servo_write_frame(uint8_t* buf, uint8_t buf_size, const SharedSer
 // <[<id: u8> <wanted_angle: u8> <wanted_nb_turns: u8> <finished, new_command: u8>] ...>
 // <[<id: u8> <on_off: u8>] ...>
 // <[<id: u8> <on_off: u8>] ...>
-extern SharedMotors2019 motor_read_frame(const uint8_t* message, uint8_t size);
-extern uint8_t motor_write_frame(uint8_t* buf, uint8_t buf_size, const SharedMotors2019* obj);
+extern SharedMotors2019 motor_read_frame(const uint8_t* message, buffer_size_t size);
+extern buffer_size_t motor_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedMotors2019* obj);
 
 // TODO
-extern SharedAvoidance2019 avoidance_read_frame(const uint8_t* message, uint8_t size);
-extern uint8_t avoidance_write_frame(uint8_t* buf, uint8_t buf_size, const SharedAvoidance2019* obj);
+extern SharedAvoidance2019 avoidance_read_frame(const uint8_t* message, buffer_size_t size);
+extern buffer_size_t avoidance_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedAvoidance2019* obj);
 
 // Format d'une trame :
 // <tirette: uint8_t>
-extern SharedIO2019 io_read_frame(const uint8_t* message, uint8_t size);
-extern uint8_t io_write_frame(uint8_t* buf, uint8_t buf_size, const SharedIO2019* obj);
+extern SharedIO2019 io_read_frame(const uint8_t* message, buffer_size_t size);
+extern buffer_size_t io_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedIO2019* obj);
 
 // TODO
-extern SharedMoving2019 moving_read_frame(const uint8_t* message, uint8_t size);
-extern uint8_t moving_write_frame(uint8_t* buf, uint8_t buf_size, const SharedMoving2019* obj);
+extern SharedMoving2019 moving_read_frame(const uint8_t* message, buffer_size_t size);
+extern buffer_size_t moving_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedMoving2019* obj);
 
 #ifdef __cplusplus
 }

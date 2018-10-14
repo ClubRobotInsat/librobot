@@ -29,7 +29,7 @@ use libc::uint8_t;
 
 use arrayvec::ArrayVec;
 
-type MsgVec = ArrayVec<[u8;1024]>;
+pub type MsgVec = ArrayVec<[uint8_t; 256]>;
 
 /// Représente la signature de la fonction C que l'on appelle pour transformer la frame en octets.
 type WriteFunction<T> = unsafe extern "C" fn(*mut uint8_t, uint8_t, *const T) -> uint8_t;
@@ -44,40 +44,39 @@ pub trait TypeInfo {
 }
 
 /// Représentation structurelle d'un unique servo-moteur
-/// TODO : l'informatique peut donner soit un ordre de position soit de vitesse (union)
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Servo2019 {
+pub struct CServo2019 {
     /// Identifiant du servo-moteur. L'ID 0 est réservé pour spécifier l'abscence de servo-moteur.
-    id: libc::uint8_t,
+    pub id: libc::uint8_t,
     /// Position actuelle du servo-moteur.
-    position: libc::uint16_t,
+    pub position: libc::uint16_t,
     /// Ordre de position ou de vitesse donné par l'informatique.
-    command: libc::uint16_t,
+    pub command: libc::uint16_t,
     /// Si égal à 0, la commande est en position ; si égal à 1 il s'agit d'un ordre de vitesse.
-    command_type: libc::uint8_t,
+    pub command_type: libc::uint8_t,
     /// Si égal à 1, alors le servo-moteur est bloqué (il force).
-    blocked: libc::c_char,
+    pub blocked: libc::c_char,
     /// HOLD_ON_BLOCKING = 1, UNBLOCKING = 0
-    blocking_mode: libc::uint8_t,
+    pub blocking_mode: libc::uint8_t,
     /// Couleur affichée sur le servo-moteur.
-    color: libc::uint8_t,
+    pub color: libc::uint8_t,
 }
 
 /// Module complet de la gestion des servos-moteur
 #[repr(C)]
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct SharedServos2019 {
+pub struct CSharedServos2019 {
     /// Ensemble des servos-moteurs.
     /// Il faut aussi modifier le code C pour avoir plus que 8 servos-moteur.
-    servos: [Servo2019; 8],
+    pub servos: [CServo2019; 8],
     /// Flag pour savoir si le parsing de la trame s'est bien réalisé par le C. 0 : OK, 1 : NOK.
-    parsing_failed: libc::uint8_t,
+    pub parsing_failed: libc::uint8_t,
 }
 
-/// Relation d'équivalence partielle pour le module `Servo2019`, utile pour le débug.
-impl PartialEq for Servo2019 {
-    fn eq(&self, other: &Servo2019) -> bool {
+/// Relation d'équivalence partielle pour le module `CServo2019`, utile pour le débug.
+impl PartialEq for CServo2019 {
+    fn eq(&self, other: &CServo2019) -> bool {
         self.id == other.id
             && (self.id == 0
                 || (self.position == other.position
@@ -89,13 +88,13 @@ impl PartialEq for Servo2019 {
     }
 }
 
-/// Relation d'équivalence pour le module `Servo2019`, utile pour le débug (généré depuis PartialEq)
-impl Eq for SharedServos2019 {}
+/// Relation d'équivalence pour le module `CServo2019` utile pour le débug (généré depuis PartialEq)
+impl Eq for CSharedServos2019 {}
 
 /// Association d'un nom pour l'affichage dans le débug.
-impl TypeInfo for SharedServos2019 {
+impl TypeInfo for CSharedServos2019 {
     fn type_of(&self) -> &'static str {
-        "Servos2019"
+        "CServos2019"
     }
 }
 
@@ -103,57 +102,57 @@ impl TypeInfo for SharedServos2019 {
 /// TODO : l'informatique peut donner soit un ordre de rotation soit une consigne de nombre de tours
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct ControlledMotor2019 {
+pub struct CControlledMotor2019 {
     /// Identifiant du moteur asservi. L'ID 0 est réservé pour spécifier l'abscence de moteur.
-    id: libc::uint8_t,
+    pub id: libc::uint8_t,
     /// Ordre angulaire donné par l'informatique.
-    wanted_angle_position: libc::uint8_t,
+    pub wanted_angle_position: libc::uint8_t,
     /// Ordre de nombre de tours donné par l'informatique.
-    wanted_nb_turns: libc::uint8_t,
+    pub wanted_nb_turns: libc::uint8_t,
     /// Si le flag vaut 1, l'électronique spécifie que la commande est terminée.
-    finished: libc::uint8_t,
+    pub finished: libc::uint8_t,
     /// Si le flag vaut 1, l'informatique spécifie qu'un nouvel ordre a été donné
     /// L'électronique doit oublier les anciens ordres.
-    new_command: libc::uint8_t,
+    pub new_command: libc::uint8_t,
 }
 /// Représentation structurelle d'un unique moteur non asservi
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct UncontrolledMotor2019 {
+pub struct CUncontrolledMotor2019 {
     /// Identifiant du moteur non asservi. L'ID 0 est réservé pour spécifier l'abscence de moteur.
-    id: libc::uint8_t,
+    pub id: libc::uint8_t,
     /// Flag pour savoir si le moteur tourne ; 1 = ON, 0 = OFF.
-    on_off: libc::uint8_t,
+    pub on_off: libc::uint8_t,
     /// SCHEDULE = 0, TRIGONOMETRIC = 1
-    rotation: libc::uint8_t,
+    pub rotation: libc::uint8_t,
 }
 /// Représentation structurelle d'un unique brushless
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct Brushless2019 {
+pub struct CBrushless2019 {
     /// Identifiant du brushless. L'ID 0 est réservé pour spécifier l'abscence de brushless.
-    id: libc::uint8_t,
+    pub id: libc::uint8_t,
     /// Flag pour savoir si le brushless tourne ; 1 = ON, 0 = OFF.
-    on_off: libc::uint8_t,
+    pub on_off: libc::uint8_t,
 }
 
 /// Module complet de la gestion des moteurs
 #[repr(C)]
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct SharedMotors2019 {
+pub struct CSharedMotors2019 {
     /// Ensemble des moteurs asservis.
-    controlled_motors: [ControlledMotor2019; 8],
+    pub controlled_motors: [CControlledMotor2019; 8],
     /// Ensemble des moteurs non-asservis.
-    uncontrolled_motors: [UncontrolledMotor2019; 8],
+    pub uncontrolled_motors: [CUncontrolledMotor2019; 8],
     /// Ensemble des brushless.
-    brushless: [Brushless2019; 8],
+    pub brushless: [CBrushless2019; 8],
     /// Flag pour savoir si le parsing de la trame s'est bien réalisé par le C. 0 : OK, 1 : NOK.
-    parsing_failed: libc::uint8_t,
+    pub parsing_failed: libc::uint8_t,
 }
 
-/// Relation d'équivalence partielle pour le module `ControlledMotor2019`, utile pour le débug.
-impl PartialEq for ControlledMotor2019 {
-    fn eq(&self, other: &ControlledMotor2019) -> bool {
+/// Relation d'équivalence partielle pour le module `CControlledMotor2019`, utile pour le débug.
+impl PartialEq for CControlledMotor2019 {
+    fn eq(&self, other: &CControlledMotor2019) -> bool {
         self.id == other.id
             && (self.id == 0
                 || (self.wanted_angle_position == other.wanted_angle_position
@@ -162,26 +161,26 @@ impl PartialEq for ControlledMotor2019 {
                     && self.new_command == other.new_command))
     }
 }
-/// Relation d'équivalence partielle pour le module `UncontrolledMotor2019`, utile pour le débug.
-impl PartialEq for UncontrolledMotor2019 {
-    fn eq(&self, other: &UncontrolledMotor2019) -> bool {
+/// Relation d'équivalence partielle pour le module `CUncontrolledMotor2019`, utile pour le débug.
+impl PartialEq for CUncontrolledMotor2019 {
+    fn eq(&self, other: &CUncontrolledMotor2019) -> bool {
         self.id == other.id
             && (self.id == 0 || (self.on_off == other.on_off && self.rotation == other.rotation))
     }
 }
-/// Relation d'équivalence partielle pour le module `Brushless2019`, utile pour le débug.
-impl PartialEq for Brushless2019 {
-    fn eq(&self, other: &Brushless2019) -> bool {
+/// Relation d'équivalence partielle pour le module `CBrushless2019`, utile pour le débug.
+impl PartialEq for CBrushless2019 {
+    fn eq(&self, other: &CBrushless2019) -> bool {
         self.id == other.id && (self.id == 0 || (self.on_off == other.on_off))
     }
 }
-/// Relation d'équivalence pour le module `Motor2019`, utile pour le débug (généré depuis PartialEq)
-impl Eq for SharedMotors2019 {}
+/// Relation d'équivalence pour le module `CMotor2019` utile pour le débug (généré depuis PartialEq)
+impl Eq for CSharedMotors2019 {}
 
 /// Association d'un nom pour l'affichage dans le débug.
-impl TypeInfo for SharedMotors2019 {
+impl TypeInfo for CSharedMotors2019 {
     fn type_of(&self) -> &'static str {
-        "Motors2019"
+        "CMotors2019"
     }
 }
 
@@ -190,20 +189,20 @@ impl TypeInfo for SharedMotors2019 {
 extern "C" {
     /// Parsing du module des servos-moteur
     fn servo_read_frame(message: *const libc::uint8_t, size: libc::uint8_t)
-        -> SharedServos2019;
+        -> CSharedServos2019;
     fn servo_write_frame(
         buf: *mut libc::uint8_t,
         buf_size: libc::uint8_t,
-        obj: *const SharedServos2019,
+        obj: *const CSharedServos2019,
     ) -> libc::uint8_t;
 
     /// Parsing du module des moteurs
     fn motor_read_frame(message: *const libc::uint8_t, size: libc::uint8_t)
-        -> SharedMotors2019;
+        -> CSharedMotors2019;
     fn motor_write_frame(
         buf: *mut libc::uint8_t,
         buf_size: libc::uint8_t,
-        obj: *const SharedMotors2019,
+        obj: *const CSharedMotors2019,
     ) -> libc::uint8_t;
 
 // TODO : récupérer les constantes partagées depuis le code C
@@ -223,8 +222,12 @@ where
     T: FrameParsingTrait,
     T: TypeInfo,
 {
+    let mut buf = [0u8; 256];
+    for i in 0..255 {
+        buf[i] = message[i];
+    }
     #[allow(unsafe_code)]
-    let servo = unsafe { c_read_function(message.as_ptr(), message.len() as uint8_t) };
+    let servo = unsafe { c_read_function((& buf).as_ptr(), 255) };
 
     if servo.read_is_ok() {
         Ok(servo)
@@ -239,10 +242,10 @@ fn generic_write_frame<T>(
 where
     T: TypeInfo,
 {
-    let mut buf = MsgVec::new();
+    let mut buf = [0u8; 256];
 
     #[allow(unsafe_code)]
-    let size = unsafe { c_write_function(buf.as_mut_ptr(), buf.capacity() as uint8_t, obj) };
+    let size = unsafe { c_write_function((&mut buf).as_mut_ptr(), 255, obj) };
 
     if size == 0 {
         Err(ErrorParsing::BufferTooSmall)
@@ -250,11 +253,17 @@ where
         /*unsafe {
             buf.set_len(size as usize);
         }*/
-        Ok(buf)
+        let mut result = ArrayVec::<[u8;256]>::new();
+
+        #[allow(unused_must_use)]
+        //buf.into_iter().map(|elem| result.push(*elem)).collect::<()>(); // TODO : FIXME le debugger de clion qui marche po
+        for a in buf.iter() {
+            result.push(*a);
+        }
+        Ok(result)
     }
 }
 
-// TODO : Documentation
 /// Erreur levée lorsqu'un problème de parsing intervient en C
 #[derive(Debug)]
 pub enum ErrorParsing {
@@ -266,7 +275,7 @@ pub enum ErrorParsing {
 
 /// Regroupements de méthodes permettant de sérialiser et déserialiser des Frames à partir d'un
 /// flux d'octets.
-trait FrameParsingTrait {
+pub trait FrameParsingTrait {
     /// Permet de transformer un buffer en message.
     fn read_frame(_msg: MsgVec) -> Result<Self, ErrorParsing>
     where
@@ -277,8 +286,8 @@ trait FrameParsingTrait {
     fn read_is_ok(&self) -> bool;
 }
 
-impl FrameParsingTrait for SharedServos2019 {
-    fn read_frame(msg: MsgVec) -> Result<SharedServos2019, ErrorParsing> {
+impl FrameParsingTrait for CSharedServos2019 {
+    fn read_frame(msg: MsgVec) -> Result<CSharedServos2019, ErrorParsing> {
         generic_read_frame(msg, servo_read_frame)
     }
 
@@ -291,8 +300,8 @@ impl FrameParsingTrait for SharedServos2019 {
     }
 }
 
-impl FrameParsingTrait for SharedMotors2019 {
-    fn read_frame(msg: MsgVec) -> Result<SharedMotors2019, ErrorParsing> {
+impl FrameParsingTrait for CSharedMotors2019 {
+    fn read_frame(msg: MsgVec) -> Result<CSharedMotors2019, ErrorParsing> {
         generic_read_frame(msg, motor_read_frame)
     }
 
