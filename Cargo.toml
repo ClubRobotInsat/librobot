@@ -7,7 +7,7 @@ build = "build.rs"
 [dependencies]
 embedded-hal = "~0.2.1"
 nb = "~0.1.1"
-libc = { version = "~0.2", default-features = false ,features=["align"]}
+libc = { git = "https://github.com/gbip/libc", default-features = false ,features=["align"]}
 
 [dependencies.arrayvec]
 default-features = false
