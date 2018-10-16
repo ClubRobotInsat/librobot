@@ -29,7 +29,7 @@ use libc::uint8_t;
 
 use arrayvec::ArrayVec;
 
-pub type MsgVec = ArrayVec<[uint8_t; 256]>;
+use communication::Message;
 
 /// Représente la signature de la fonction C que l'on appelle pour transformer la frame en octets.
 type WriteFunction<T> = unsafe extern "C" fn(*mut uint8_t, uint8_t, *const T) -> uint8_t;
@@ -219,7 +219,7 @@ pub static NBR_BRUSHLESS: libc::uint8_t;*/
 /// Fonctions de parsing génériques
 /// Il faut `impl` chaque structure pour appeler ces fonctions lors du parsing
 fn generic_read_frame<T>(
-    message: MsgVec,
+    message: Message,
     c_read_function: ReadFunction<T>,
 ) -> Result<T, ErrorParsing>
 where
@@ -242,7 +242,7 @@ where
 fn generic_write_frame<T>(
     obj: &T,
     c_write_function: WriteFunction<T>,
-) -> Result<MsgVec, ErrorParsing>
+) -> Result<Message, ErrorParsing>
 where
     T: TypeInfo,
 {
@@ -277,21 +277,21 @@ pub enum ErrorParsing {
 /// flux d'octets.
 pub trait FrameParsingTrait {
     /// Permet de transformer un buffer en message.
-    fn read_frame(_msg: MsgVec) -> Result<Self, ErrorParsing>
+    fn read_frame(_msg: Message) -> Result<Self, ErrorParsing>
     where
         Self: Sized;
     /// Permet de transformer un message en octet.
-    fn write_frame(&self) -> Result<MsgVec, ErrorParsing>;
+    fn write_frame(&self) -> Result<Message, ErrorParsing>;
     /// Permet de vérifier la validité d'un message.
     fn read_is_ok(&self) -> bool;
 }
 
 impl FrameParsingTrait for CSharedServos2019 {
-    fn read_frame(msg: MsgVec) -> Result<CSharedServos2019, ErrorParsing> {
+    fn read_frame(msg: Message) -> Result<CSharedServos2019, ErrorParsing> {
         generic_read_frame(msg, servo_read_frame)
     }
 
-    fn write_frame(&self) -> Result<MsgVec, ErrorParsing> {
+    fn write_frame(&self) -> Result<Message, ErrorParsing> {
         generic_write_frame(self, servo_write_frame)
     }
 
@@ -301,11 +301,11 @@ impl FrameParsingTrait for CSharedServos2019 {
 }
 
 impl FrameParsingTrait for CSharedMotors2019 {
-    fn read_frame(msg: MsgVec) -> Result<CSharedMotors2019, ErrorParsing> {
+    fn read_frame(msg: Message) -> Result<CSharedMotors2019, ErrorParsing> {
         generic_read_frame(msg, motor_read_frame)
     }
 
-    fn write_frame(&self) -> Result<MsgVec, ErrorParsing> {
+    fn write_frame(&self) -> Result<Message, ErrorParsing> {
         generic_write_frame(self, motor_write_frame)
     }
 

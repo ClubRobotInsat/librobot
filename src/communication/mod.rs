@@ -34,7 +34,11 @@ mod ffi;
 pub mod servos;
 pub use communication::servos::ServoGroup;
 pub use communication::servos::Servo;
-pub use communication::servos::MsgVec;
+
+use arrayvec::ArrayVec;
+
+/// Un message est un tableau de 256 octets.
+pub type Message = ArrayVec<[u8; 256]>;
 
 #[cfg(test)]
 mod tests;
