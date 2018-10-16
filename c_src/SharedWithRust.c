@@ -71,26 +71,19 @@ SharedServos2019 servo_read_frame(const uint8_t* message, buffer_size_t size) {
 
 buffer_size_t servo_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedServos2019* obj) {
     buffer_size_t size = 0;
-	uint8_t nb_servo = 0;
 
 	// Contrôle du buffer alloué
 	if(buf == NULL || obj == NULL || buf_size == 0) {
 		return 0;
 	}
 
-	for(uint8_t id = 0; id < MAX_SERVOS; ++id) {
-		if(obj->servos[id].id > 0) {
-			++nb_servo;
-		}
-	}
-
 	// Il n'y a pas assez de place dans le buffer : on n'écrit rien dedans
-	if(buf_size < get_size_servo_frame(nb_servo)) {
+	if(buf_size < get_size_servo_frame(obj->nb_servos)) {
 		return 0;
 	}
 
 	// Écriture des données de chaque servo-moteur
-	buf[size++] = nb_servo;
+	buf[size++] = obj->nb_servos;
 	for(uint8_t index = 0; index < obj->nb_servos; ++index) {
 		// Le servo-moteur d'index
 		if(obj->servos[index].id > 0) {
