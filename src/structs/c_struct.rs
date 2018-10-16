@@ -194,6 +194,7 @@ extern "C" {
         buf_size: libc::uint8_t,
         obj: *const CSharedServos2019,
     ) -> libc::uint8_t;
+    fn get_size_servo_frame(nb_servos: libc::uint8_t) -> libc::uint8_t;
 
     /// Parsing du module des moteurs
     fn motor_read_frame(message: *const libc::uint8_t, size: libc::uint8_t) -> CSharedMotors2019;
@@ -202,6 +203,7 @@ extern "C" {
         buf_size: libc::uint8_t,
         obj: *const CSharedMotors2019,
     ) -> libc::uint8_t;
+    fn get_size_motor_frame(nb_controlled: libc::uint8_t, nb_uncontrolled: libc::uint8_t, nb_brushless: libc::uint8_t) -> libc::uint8_t;
 
 // TODO : récupérer les constantes partagées depuis le code C
 /*pub static NBR_SERVOS: libc::uint8_t;
