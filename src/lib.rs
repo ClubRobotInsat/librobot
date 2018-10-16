@@ -16,5 +16,5 @@ extern crate libc;
 extern crate nb;
 
 pub mod communication;
-pub use communication::servos::ServoGroup;
+pub use communication::*;
 
