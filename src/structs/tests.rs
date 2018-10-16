@@ -2,8 +2,8 @@
 extern crate core;
 extern crate libc;
 
-use structs::c_struct::*;
 use arrayvec::ArrayVec;
+use structs::c_struct::*;
 
 #[test]
 fn test_servos() {
@@ -61,10 +61,20 @@ fn test_servos() {
 
     let written_frame = struct_before.write_frame();
     assert!(written_frame.is_ok());
-    let read_frame = CSharedServos2019::read_frame(written_frame.unwrap_or(ArrayVec::<[u8; 256]>::new()));
+    let read_frame =
+        CSharedServos2019::read_frame(written_frame.unwrap_or(ArrayVec::<[u8; 256]>::new()));
     assert!(read_frame.is_ok());
-    /*let struct_after = read_frame.unwrap_or(struct_before);
-    assert_eq!(struct_before, struct_after);*/
+    let struct_after = read_frame.unwrap_or(struct_before);
+    // Les éléments ne sont pas dans le même ordre mais les structures sont équivalentes
+    for servo in &struct_before.servos {
+        assert!(
+            &struct_after
+                .servos
+                .iter()
+                .find(|elem| *elem == servo)
+                .is_some()
+        );
+    }
 
     println!("[OK] read(write(servo)) == servo");
 }
@@ -152,12 +162,40 @@ fn test_motors() {
         parsing_failed: 0,
     };
 
-    /*let written_frame = struct_before.write_frame();
+    let written_frame = struct_before.write_frame();
     assert!(written_frame.is_ok());
-    let read_frame = CSharedMotors2019::read_frame(written_frame.unwrap_or(ArrayVec::<[u8; 1024]>::new()));
+    let read_frame =
+        CSharedMotors2019::read_frame(written_frame.unwrap_or(ArrayVec::<[u8; 256]>::new()));
     assert!(read_frame.is_ok());
     let struct_after = read_frame.unwrap_or(struct_before);
-    assert_eq!(struct_before, struct_after);
 
-    println!("[OK] read(write(motor)) == motor");*/
+    for motor in &struct_before.controlled_motors {
+        assert!(
+            &struct_after
+                .controlled_motors
+                .iter()
+                .find(|elem| *elem == motor)
+                .is_some()
+        );
+    }
+    for motor in &struct_before.uncontrolled_motors {
+        assert!(
+            &struct_after
+                .uncontrolled_motors
+                .iter()
+                .find(|elem| *elem == motor)
+                .is_some()
+        );
+    }
+    for motor in &struct_before.brushless {
+        assert!(
+            &struct_after
+                .brushless
+                .iter()
+                .find(|elem| *elem == motor)
+                .is_some()
+        );
+    }
+
+    println!("[OK] read(write(motor)) == motor");
 }

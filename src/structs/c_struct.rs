@@ -189,31 +189,31 @@ impl TypeInfo for CSharedMotors2019 {
 }
 
 /// Toutes les fonctions C doivent être définies ici pour le linkage
-#[link(name="SharedWithRust")]
+#[link(name = "SharedWithRust")]
 extern "C" {
     /// Parsing du module des servos-moteur
-    fn servo_read_frame(message: *const libc::uint8_t, size: libc::uint8_t)
-        -> CSharedServos2019;
+    fn servo_read_frame(message: *const libc::uint8_t, size: libc::uint8_t) -> CSharedServos2019;
     fn servo_write_frame(
         buf: *mut libc::uint8_t,
         buf_size: libc::uint8_t,
         obj: *const CSharedServos2019,
     ) -> libc::uint8_t;
+    fn get_size_servo_frame(nb_servos: libc::uint8_t) -> libc::uint8_t;
 
     /// Parsing du module des moteurs
-    fn motor_read_frame(message: *const libc::uint8_t, size: libc::uint8_t)
-        -> CSharedMotors2019;
+    fn motor_read_frame(message: *const libc::uint8_t, size: libc::uint8_t) -> CSharedMotors2019;
     fn motor_write_frame(
         buf: *mut libc::uint8_t,
         buf_size: libc::uint8_t,
         obj: *const CSharedMotors2019,
     ) -> libc::uint8_t;
+    fn get_size_motor_frame(nb_controlled: libc::uint8_t, nb_uncontrolled: libc::uint8_t, nb_brushless: libc::uint8_t) -> libc::uint8_t;
 
 // TODO : récupérer les constantes partagées depuis le code C
-    /*pub static NBR_SERVOS: libc::uint8_t;
-    pub static NBR_CONTROLLED_MOTORS: libc::uint8_t;
-    pub static NBR_UNCONTROLLED_MOTORS: libc::uint8_t;
-    pub static NBR_BRUSHLESS: libc::uint8_t;*/
+/*pub static NBR_SERVOS: libc::uint8_t;
+pub static NBR_CONTROLLED_MOTORS: libc::uint8_t;
+pub static NBR_UNCONTROLLED_MOTORS: libc::uint8_t;
+pub static NBR_BRUSHLESS: libc::uint8_t;*/
 }
 
 /// Fonctions de parsing génériques
@@ -227,11 +227,11 @@ where
     T: TypeInfo,
 {
     let mut buf = [0u8; 256];
-    for (index,data) in message.iter().enumerate() {
+    for (index, data) in message.iter().enumerate() {
         buf[index] = *data;
     }
     #[allow(unsafe_code)]
-    let servo = unsafe { c_read_function((& buf).as_ptr(), message.len() as uint8_t) };
+    let servo = unsafe { c_read_function((&buf).as_ptr(), message.len() as uint8_t) };
 
     if servo.read_is_ok() {
         Ok(servo)
@@ -254,16 +254,12 @@ where
     if size == 0 {
         Err(ErrorParsing::BufferTooSmall)
     } else {
-        /*unsafe {
-            buf.set_len(size as usize);
-        }*/
-        let mut result = ArrayVec::<[u8;256]>::new();
+        let mut result = ArrayVec::<[u8; 256]>::new();
 
-        #[allow(unused_must_use)]
-        //buf.into_iter().map(|elem| result.push(*elem)).collect::<()>(); // TODO : FIXME le debugger de clion qui marche po
-        for a in buf[0..size as usize].iter() {
-            result.push(*a);
+        for i in 0..size as usize {
+            result.push(buf[i]);
         }
+
         Ok(result)
     }
 }

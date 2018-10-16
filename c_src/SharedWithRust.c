@@ -5,9 +5,6 @@
 #include "SharedWithRust.h"
 #include <stddef.h>
 
-#define FRAME_SERVO_SIZE(number) (1 + (number)*6)
-#define FRAME_MOTOR_SIZE(controlled, uncontrolled, brushless) (3 + (controlled)*4 + (uncontrolled)*2 + (brushless)*2)
-
 SharedServos2019 servo_read_frame(const uint8_t* message, buffer_size_t size) {
 	SharedServos2019 s;
 
@@ -19,7 +16,7 @@ SharedServos2019 servo_read_frame(const uint8_t* message, buffer_size_t size) {
 	uint8_t count = 0;
 	uint8_t nb_servo = message[count++];
 
-	if(size != FRAME_SERVO_SIZE(nb_servo)) {
+	if(size != get_size_servo_frame(nb_servo)) {
 		s.parsing_failed = 1;
 		return s;
 	}
@@ -88,7 +85,7 @@ buffer_size_t servo_write_frame(uint8_t* buf, buffer_size_t buf_size, const Shar
 	}
 
 	// Il n'y a pas assez de place dans le buffer : on n'écrit rien dedans
-	if(buf_size < FRAME_SERVO_SIZE(nb_servo)) {
+	if(buf_size < get_size_servo_frame(nb_servo)) {
 		return 0;
 	}
 
@@ -124,6 +121,10 @@ buffer_size_t servo_write_frame(uint8_t* buf, buffer_size_t buf_size, const Shar
 	return size;
 }
 
+uint8_t get_size_servo_frame(uint8_t nb_servos) {
+	return (uint8_t)(1 + nb_servos * 6);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 SharedMotors2019 motor_read_frame(const uint8_t* message, buffer_size_t size) {
@@ -138,7 +139,7 @@ SharedMotors2019 motor_read_frame(const uint8_t* message, buffer_size_t size) {
 	uint8_t nb_uncontrolled = message[count++];
 	uint8_t nb_brushless = message[count++];
 
-	if(size != FRAME_MOTOR_SIZE(nb_controlled, nb_uncontrolled, nb_brushless)) {
+	if(size != get_size_motor_frame(nb_controlled, nb_uncontrolled, nb_brushless)) {
 		s.parsing_failed = 1;
 		return s;
 	}
@@ -232,7 +233,7 @@ buffer_size_t motor_write_frame(uint8_t* buf, buffer_size_t buf_size, const Shar
 	}
 
 	// Il n'y a pas assez de place dans le buffer : on n'écrit rien dedans
-	if(buf_size < FRAME_MOTOR_SIZE(nb_controlled, nb_uncontrolled, nb_brushless)) {
+	if(buf_size < get_size_motor_frame(nb_controlled, nb_uncontrolled, nb_brushless)) {
 		return 0;
 	}
 
@@ -277,6 +278,10 @@ buffer_size_t motor_write_frame(uint8_t* buf, buffer_size_t buf_size, const Shar
 	return size;
 }
 
+uint8_t get_size_motor_frame(uint8_t nb_controlled, uint8_t nb_uncontrolled, uint8_t nb_brushless) {
+	return (uint8_t)(3 + nb_controlled * 4 + nb_uncontrolled * 2 + nb_brushless * 2);
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 SharedAvoidance2019 avoidance_read_frame(const uint8_t* message, buffer_size_t size) {
@@ -289,12 +294,16 @@ buffer_size_t avoidance_write_frame(uint8_t* buf, buffer_size_t buf_size, const 
 	return 0;
 }
 
+uint8_t get_size_avoidance_frame() {
+	return 0;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 SharedIO2019 io_read_frame(const uint8_t* message, buffer_size_t size) {
 	SharedIO2019 s;
 
-	if(message == NULL || size == 0) {
+	if(message == NULL || size < get_size_io_frame()) {
 		s.parsing_failed = 1;
 		return s;
 	}
@@ -314,6 +323,10 @@ buffer_size_t io_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedI
 	return 1;
 }
 
+uint8_t get_size_io_frame() {
+	return 1;
+}
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 SharedMoving2019 moving_read_frame(const uint8_t* message, buffer_size_t size) {
@@ -323,5 +336,9 @@ SharedMoving2019 moving_read_frame(const uint8_t* message, buffer_size_t size) {
 }
 
 buffer_size_t moving_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedMoving2019* obj) {
+	return 0;
+}
+
+uint8_t get_size_moving_frame() {
 	return 0;
 }

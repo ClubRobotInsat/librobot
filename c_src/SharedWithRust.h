@@ -108,13 +108,14 @@ typedef struct SharedMoving2019 {
 
 /// Fonctions définies en C et utilisées à la fois dans le code C++ et Rust
 
-typedef uint16_t buffer_size_t;
+typedef uint8_t buffer_size_t;
 
 // Format d'une trame :
 // <nb_servo: u8>
 // <[<id: u8> <position: u16> <command: u16> <command_type, blocking data, color: u8>] ...>
 extern SharedServos2019 servo_read_frame(const uint8_t* message, buffer_size_t size);
 extern buffer_size_t servo_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedServos2019* obj);
+extern uint8_t get_size_servo_frame(uint8_t nb_servos);
 
 // Format d'une trame :
 // <nb_controlled: u8>
@@ -125,19 +126,23 @@ extern buffer_size_t servo_write_frame(uint8_t* buf, buffer_size_t buf_size, con
 // <[<id: u8> <on_off: u8>] ...>
 extern SharedMotors2019 motor_read_frame(const uint8_t* message, buffer_size_t size);
 extern buffer_size_t motor_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedMotors2019* obj);
+extern uint8_t get_size_motor_frame(uint8_t nb_controlled, uint8_t nb_uncontrolled, uint8_t nb_brushless);
 
 // TODO
 extern SharedAvoidance2019 avoidance_read_frame(const uint8_t* message, buffer_size_t size);
 extern buffer_size_t avoidance_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedAvoidance2019* obj);
+extern uint8_t get_size_avoidance_frame();
 
 // Format d'une trame :
 // <tirette: uint8_t>
 extern SharedIO2019 io_read_frame(const uint8_t* message, buffer_size_t size);
 extern buffer_size_t io_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedIO2019* obj);
+extern uint8_t get_size_io_frame();
 
 // TODO
 extern SharedMoving2019 moving_read_frame(const uint8_t* message, buffer_size_t size);
 extern buffer_size_t moving_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedMoving2019* obj);
+extern uint8_t get_size_moving_frame();
 
 #ifdef __cplusplus
 }
