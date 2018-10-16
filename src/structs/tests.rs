@@ -50,12 +50,13 @@ fn test_servos() {
     assert_ne!(servo1, servo3);
 
     let mut array = [servo_empty; 8];
-    array[1] = servo1;
-    array[3] = servo3;
+    array[0] = servo1;
+    array[1] = servo3;
 
     let struct_before = CSharedServos2019 {
         servos: array,
         parsing_failed: 0,
+        nbservos : 2
     };
 
     let written_frame = struct_before.write_frame();

@@ -37,6 +37,7 @@ typedef struct SharedServos2019 {
 		uint8_t color;
 	} servos[MAX_SERVOS];
 
+	uint8_t nb_servos;
 	uint8_t parsing_failed;
 
 } SharedServos2019;

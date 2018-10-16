@@ -68,6 +68,7 @@ SharedServos2019 servo_read_frame(const uint8_t* message, buffer_size_t size) {
 
 	// Tout s'est bien passé
 	s.parsing_failed = 0;
+	s.nb_servos = nb_servo;
 	return s;
 }
 
@@ -93,7 +94,7 @@ buffer_size_t servo_write_frame(uint8_t* buf, buffer_size_t buf_size, const Shar
 
 	// Écriture des données de chaque servo-moteur
 	buf[size++] = nb_servo;
-	for(uint8_t index = 0; index < MAX_SERVOS; ++index) {
+	for(uint8_t index = 0; index < obj->nb_servos; ++index) {
 		// Le servo-moteur d'index
 		if(obj->servos[index].id > 0) {
 			buf[size++] = obj->servos[index].id;
