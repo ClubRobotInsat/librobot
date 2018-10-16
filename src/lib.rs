@@ -4,9 +4,8 @@
 #![deny(unsafe_code)]
 #![allow(dead_code)]
 
-//! Librairie du club
+//! La librairie du club pour les µ-controlleurs arm.
 
-// On inclue la librairie standard pour s'en servir dans les tests !
 #[cfg(test)]
 #[macro_use]
 extern crate std;

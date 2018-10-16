@@ -1,11 +1,11 @@
 //! Représentation haut-niveau d'un servo-moteur
-//! Un `Servo2019` peut être créé à partir de la représentation C d'un servo-moteur
+//! Un `Servo` peut être créé à partir de la représentation C d'un servo-moteur fournie sous forme d'octet.
 
 use arrayvec::ArrayVec;
 use communication::ffi::CSharedServos2019;
 use communication::ffi::{ErrorParsing, FrameParsingTrait, MsgVec};
 
-/// Représentation haut niveau d'un unique servo-moteur
+/// Représentation d'un unique servo-moteur
 #[derive(Debug, Copy, Clone)]
 pub struct Servo {
     /// Identifiant du servo-moteur.
@@ -22,10 +22,10 @@ pub struct Servo {
     pub color: Color,
 }
 
-/// Ensemble de 8 servos-moteurs
+/// Un ensemble de au plus 8 servos-moteurs
 #[derive(PartialEq, Debug, Clone)]
 pub struct ServoGroup {
-    /// Liste d'au plus 8 servos-moteurs
+    /// Vecteur d'au plus 8 servos-moteurs
     pub servos: ArrayVec<[Servo; 8]>,
 }
 
@@ -85,7 +85,8 @@ pub enum Color {
 }
 
 impl ServoGroup {
-    fn new(from_data: MsgVec) -> Result<Self,ErrorParsing> {
+    /// Crée un nouveau groupe de servomoteur à partir d'un message.
+    pub fn new(from_data: MsgVec) -> Result<Self,ErrorParsing> {
         let read_servos: Result<CSharedServos2019, ErrorParsing> =
             FrameParsingTrait::read_frame(from_data);
         match read_servos {

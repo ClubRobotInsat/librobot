@@ -1,7 +1,11 @@
-//! Ensemble des structures de représentation des objets électroniques
+//! Ensemble des types, fonctions et traits qui permettent la communication electronique<-> informatique.
 //!
-//! Le mod `c_struct` permets d'avoir une représentation bas niveau des modules
-//! dont l'échange de données avec l'informatique se fait par des fonctions C
+//! Le code qui permet de transformer des octets en structures et inversemment est écrit en C.
+//! Pour chaque type de messages, il y a une structure C (que vous ne voyez pas car elle est cachée)
+//! et une structure Rust qui correspond exactement à celle en C.
+//!
+//! Au niveau de la librairie vous ne voyez ni l'une, ni l'autre car on expose une structure Rust plus
+//! idiomatique.
 //!
 //! # Exemple
 //!
