@@ -4,6 +4,7 @@ extern crate libc;
 
 use arrayvec::ArrayVec;
 use communication::ffi::*;
+use communication::servos::*;
 
 #[test]
 fn test_servos() {
@@ -76,6 +77,7 @@ fn test_servos() {
         );
     }
 
+    assert_eq!(ServoGroup::get_size_frame(5), 31);
 }
 
 #[test]

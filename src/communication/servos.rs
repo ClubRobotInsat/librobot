@@ -2,7 +2,7 @@
 //! Un `Servo` peut être créé à partir de la représentation C d'un servo-moteur fournie sous forme d'octet.
 
 use arrayvec::ArrayVec;
-use communication::ffi::CSharedServos2019;
+use communication::ffi::{CSharedServos2019, get_size_servo_frame};
 use communication::ffi::{ErrorParsing, FrameParsingTrait, MsgVec};
 
 /// Représentation d'un unique servo-moteur
@@ -89,6 +89,14 @@ impl ServoGroup {
         match read_servos {
             Ok(s) => Ok(s.into()),
             Err(e) => Err(e),
+        }
+    }
+
+    /// Retourne la taille du message théorique, associé au nombre de servos présents.
+    pub fn get_size_frame(nb_servos: u8) -> u8 {
+        #[allow(unsafe_code)]
+        unsafe {
+            get_size_servo_frame(nb_servos)
         }
     }
 }
