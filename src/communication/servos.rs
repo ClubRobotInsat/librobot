@@ -6,7 +6,7 @@ use communication::ffi::CSharedServos2019;
 use communication::ffi::{ErrorParsing, FrameParsingTrait, MsgVec};
 
 /// Représentation d'un unique servo-moteur
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq)]
 pub struct Servo {
     /// Identifiant du servo-moteur.
     pub id: u8,
@@ -42,11 +42,8 @@ impl PartialEq for Servo {
     }
 }
 
-/// Relation d'équivalence pour le module `Servos2019` utile pour le débug (généré depuis PartialEq)
-impl Eq for ServoGroup {}
-
 /// Comportement du servo-moteur lorsqu'il est bloqué.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq)]
 pub enum BlockingMode {
     /// Le servo relâche la pression lorsqu'il est bloqué.
     Unblocking = 0,
@@ -55,7 +52,7 @@ pub enum BlockingMode {
 }
 
 /// Commande du servo-moteur.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq)]
 pub enum Control {
     /// Commande en vitesse.
     Speed(u16),
@@ -64,7 +61,7 @@ pub enum Control {
 }
 
 /// Couleur émise par le servo-moteur.
-#[derive(Debug, PartialEq, Copy, Clone)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq)]
 pub enum Color {
     /// Couleur noire
     BLACK = 0x00,
