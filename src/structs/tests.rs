@@ -56,7 +56,7 @@ fn test_servos() {
     let struct_before = CSharedServos2019 {
         servos: array,
         parsing_failed: 0,
-        nbservos : 2
+        nb_servos : 2
     };
 
     let written_frame = struct_before.write_frame();

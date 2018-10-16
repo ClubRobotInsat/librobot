@@ -72,7 +72,7 @@ pub struct CSharedServos2019 {
     pub servos: [CServo2019; 8],
 
     /// Le nombre de servos lus dans un message
-    pub nbservos : u8,
+    pub nb_servos : u8,
 
     /// Flag pour savoir si le parsing de la trame s'est bien réalisé par le C. 0 : OK, 1 : NOK.
     pub parsing_failed: libc::uint8_t,

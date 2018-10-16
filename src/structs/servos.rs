@@ -8,18 +8,18 @@ use structs::c_struct::{ErrorParsing, FrameParsingTrait, MsgVec};
 /// Représentation haut niveau d'un unique servo-moteur
 #[derive(Debug, Copy, Clone)]
 pub struct Servo2019 {
-    /// Identifiant du servo-moteur. L'ID 0 est réservé pour spécifier l'abscence de servo-moteur.
-    id: u8,
+    /// Identifiant du servo-moteur.
+    pub id: u8,
     /// Position actuelle du servo-moteur.
-    position: u16,
+    pub position: u16,
     /// Commande du servo soit en angle soit en vitesse.
-    control: Control,
+    pub control: Control,
     /// Retourne vrai si le servo-moteur est bloqué
-    blocked: bool,
+    pub blocked: bool,
     /// Comportement du servo-moteur face à un blocage extérieur.
-    mode: BlockingMode,
+    pub mode: BlockingMode,
     /// Couleur émise par le servo-moteur.
-    color: Color,
+    pub color: Color,
 }
 
 /// Ensemble de 8 servos-moteurs
@@ -66,33 +66,31 @@ pub enum Control {
 /// Couleur émise par le servo-moteur.
 #[derive(Debug, PartialEq, Copy, Clone)]
 pub enum Color {
-    /// couleur noire
+    /// Couleur noire
     BLACK = 0x00,
-    /// couleur rouge
+    /// Couleur rouge
     RED = 0x01,
-    /// couleur verte
+    /// Couleur verte
     GREEN = 0x02,
-    /// couleur jaune
+    /// Couleur jaune
     YELLOW = 0x03,
-    /// couleur bleue
+    /// Couleur bleue
     BLUE = 0x04,
-    /// couleur magenta
+    /// Couleur magenta
     MAGENTA = 0x05,
-    /// couleur cyan
+    /// Couleur cyan
     CYAN = 0x06,
     /// Couleur blanche
     WHITE = 0x07,
 }
 
 impl Servos2019 {
-    fn new(from_data: MsgVec) -> Self {
+    fn new(from_data: MsgVec) -> Result<Self,ErrorParsing> {
         let read_servos: Result<CSharedServos2019, ErrorParsing> =
             FrameParsingTrait::read_frame(from_data);
         match read_servos {
-            Ok(s) => s.into(),
-            Err(..) => Servos2019 {
-                list: ArrayVec::<[Servo2019; 8]>::new(),
-            },
+            Ok(s) => Ok(s.into()),
+            Err(e) => Err(e),
         }
     }
 }
@@ -101,7 +99,7 @@ impl Into<Servos2019> for CSharedServos2019 {
     fn into(self) -> Servos2019 {
         let mut array: ArrayVec<[Servo2019; 8]> = ArrayVec::<[Servo2019; 8]>::new();
 
-        for servo in self.servos.iter() {
+        for servo in self.servos[0..self.nb_servos as usize].iter() {
             array.push(Servo2019 {
                 id: servo.id,
                 /// Cette variable depuis l'informatique n'est pas intéressante
