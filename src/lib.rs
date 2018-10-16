@@ -16,18 +16,6 @@ extern crate embedded_hal;
 extern crate libc;
 extern crate nb;
 
-#[macro_use]
-pub mod trame;
 pub mod structs;
-pub mod trame_reader;
-pub mod utils;
 pub use structs::servos::Servos2019;
-pub use trame::Trame;
 
-#[cfg(test)]
-mod tests {
-    #[test]
-    fn it_works() {
-        assert_eq!(2 + 2, 4);
-    }
-}
