@@ -2,16 +2,16 @@
 //! Un `Servo2019` peut être créé à partir de la représentation C d'un servo-moteur
 
 use arrayvec::ArrayVec;
-use structs::c_struct::CSharedServos2019;
-use structs::c_struct::{ErrorParsing, FrameParsingTrait, MsgVec};
+use communication::ffi::CSharedServos2019;
+use communication::ffi::{ErrorParsing, FrameParsingTrait, MsgVec};
 
 /// Représentation haut niveau d'un unique servo-moteur
 #[derive(Debug, Copy, Clone)]
-pub struct Servo2019 {
+pub struct Servo {
     /// Identifiant du servo-moteur.
     pub id: u8,
     /// Position actuelle du servo-moteur.
-    pub position: u16,
+    pub known_position: u16,
     /// Commande du servo soit en angle soit en vitesse.
     pub control: Control,
     /// Retourne vrai si le servo-moteur est bloqué
@@ -24,17 +24,17 @@ pub struct Servo2019 {
 
 /// Ensemble de 8 servos-moteurs
 #[derive(PartialEq, Debug, Clone)]
-pub struct Servos2019 {
+pub struct ServoGroup {
     /// Liste d'au plus 8 servos-moteurs
-    pub list: ArrayVec<[Servo2019; 8]>,
+    pub servos: ArrayVec<[Servo; 8]>,
 }
 
 /// Relation d'équivalence partielle pour le module `Servo2019`, utile pour le débug.
-impl PartialEq for Servo2019 {
-    fn eq(&self, other: &Servo2019) -> bool {
+impl PartialEq for Servo {
+    fn eq(&self, other: &Servo) -> bool {
         self.id == other.id
             && (self.id == 0
-                || (self.position == other.position
+                || (self.known_position == other.known_position
                     && self.control == other.control
                     && self.blocked == other.blocked
                     && self.mode == other.mode
@@ -43,7 +43,7 @@ impl PartialEq for Servo2019 {
 }
 
 /// Relation d'équivalence pour le module `Servos2019` utile pour le débug (généré depuis PartialEq)
-impl Eq for Servos2019 {}
+impl Eq for ServoGroup {}
 
 /// Comportement du servo-moteur lorsqu'il est bloqué.
 #[derive(Debug, PartialEq, Copy, Clone)]
@@ -84,7 +84,7 @@ pub enum Color {
     WHITE = 0x07,
 }
 
-impl Servos2019 {
+impl ServoGroup {
     fn new(from_data: MsgVec) -> Result<Self,ErrorParsing> {
         let read_servos: Result<CSharedServos2019, ErrorParsing> =
             FrameParsingTrait::read_frame(from_data);
@@ -95,15 +95,15 @@ impl Servos2019 {
     }
 }
 
-impl Into<Servos2019> for CSharedServos2019 {
-    fn into(self) -> Servos2019 {
-        let mut array: ArrayVec<[Servo2019; 8]> = ArrayVec::<[Servo2019; 8]>::new();
+impl Into<ServoGroup> for CSharedServos2019 {
+    fn into(self) -> ServoGroup {
+        let mut array: ArrayVec<[Servo; 8]> = ArrayVec::<[Servo; 8]>::new();
 
         for servo in self.servos[0..self.nb_servos as usize].iter() {
-            array.push(Servo2019 {
+            array.push(Servo {
                 id: servo.id,
                 /// Cette variable depuis l'informatique n'est pas intéressante
-                position: 0,
+                known_position: 0,
                 control: match servo.command_type {
                     0 => Control::Position(servo.command),
                     1 => Control::Speed(servo.command),
@@ -128,6 +128,6 @@ impl Into<Servos2019> for CSharedServos2019 {
                 },
             });
         }
-        Servos2019 { list: array }
+        ServoGroup { servos: array }
     }
 }

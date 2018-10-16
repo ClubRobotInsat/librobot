@@ -3,7 +3,7 @@ extern crate core;
 extern crate libc;
 
 use arrayvec::ArrayVec;
-use structs::c_struct::*;
+use communication::ffi::*;
 
 #[test]
 fn test_servos() {
@@ -76,7 +76,6 @@ fn test_servos() {
         );
     }
 
-    println!("[OK] read(write(servo)) == servo");
 }
 
 #[test]
@@ -197,5 +196,4 @@ fn test_motors() {
         );
     }
 
-    println!("[OK] read(write(motor)) == motor");
 }

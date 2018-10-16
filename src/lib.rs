@@ -16,6 +16,6 @@ extern crate embedded_hal;
 extern crate libc;
 extern crate nb;
 
-pub mod structs;
-pub use structs::servos::Servos2019;
+pub mod communication;
+pub use communication::servos::ServoGroup;
 
