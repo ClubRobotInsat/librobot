@@ -29,11 +29,9 @@
 //!          v(t)                           v(t)
 //! ```
 
-
 mod ffi;
 pub mod servos;
 pub use communication::servos::*;
-
 
 use arrayvec::ArrayVec;
 

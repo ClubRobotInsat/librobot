@@ -2,7 +2,9 @@
 //! Un `Servo` peut être créé à partir de la représentation C d'un servo-moteur fournie sous forme d'octet.
 
 use arrayvec::ArrayVec;
-use communication::ffi::{CSharedServos2019, get_size_servo_frame, ErrorParsing, FrameParsingTrait};
+use communication::ffi::{
+    get_size_servo_frame, CSharedServos2019, ErrorParsing, FrameParsingTrait,
+};
 use communication::Message;
 
 /// Représentation d'un unique servo-moteur
@@ -83,7 +85,7 @@ pub enum Color {
 
 impl ServoGroup {
     /// Crée un nouveau groupe de servomoteur à partir d'un message.
-    pub fn new(from_data: Message) -> Result<Self,ErrorParsing> {
+    pub fn new(from_data: Message) -> Result<Self, ErrorParsing> {
         let read_servos: Result<CSharedServos2019, ErrorParsing> =
             FrameParsingTrait::read_frame(from_data);
         match read_servos {
