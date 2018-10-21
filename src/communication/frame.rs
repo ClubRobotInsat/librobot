@@ -11,11 +11,9 @@
 //! | H2                                        | 0xDC              |
 //! | H3                                        | 0xAB              |
 //! | Type                                      | 0xAB - 0xBA       |
-//! |  Pnum (optionnel) sur 1 octet             | ?                 |
-//! |  Id sur 1 octet                           | ?                 |
-//! |  Cmd sur 1 cotet                          | ?                 |
-//! |   Taille Donnée sur 1 octet Max : 8 octet | ?                 |
-//! | Donnée (max 8 octet)                      | [?,?,?,?,?,?,?,?] |
+//! | Taille Donnée sur 1 octet                 | ?                 |
+//! | Id sur 1 octet                            | ?                 |
+//! | Donnée                                    | [?,?,?,?,?,?,?,?] |
 //!
 //! # Exemple
 //!
@@ -57,23 +55,22 @@ use communication::Message;
 ///
 /// Création et conversion d'une [Frame] pour l'envoi de données :
 ///
-/// ```ignore
+/// ```
 /// # #[macro_use]
 /// # extern crate librobot;
 /// # use librobot::frame::*;
 /// # fn main() {
 /// let t = frame!(0xFF,[0x55,0x66]);
-/// let (arr,size) = t.into();
+/// let arr: arrayvec::ArrayVec<[u8; 256]> = t.into();
 /// assert_eq!(&[0xAC,
 ///             0xDC,
 ///             0xAB,
 ///             0xBA,
+///             3,
 ///             0xFF,
-///             0x11,
-///             0x02,
 ///             0x55,
 ///             0x66],
-///             &arr[0..size])
+///             &arr[0..8])
 /// # }
 /// ```
 ///
@@ -81,32 +78,13 @@ use communication::Message;
 pub struct Frame {
     /// L'identifiant d'une trame.
     pub id: u8,
-    /// Le numéro de commande d'une trame.
-    //pub cmd: u8,
-    /// Le numéro de paquet optionnel d'une trame.
-    //pub pnum: Option<u8>,
-    /// Le nombre de donnée dans la trame.
-    //pub data_length: u8,
     /// Les données de la trame.
     pub data: Message,
 }
 
-/*impl Default for Frame {
-    fn default() -> Self {
-        Frame {
-            id: 0,
-            data_length: 0,
-            data: [0; 256],
-        }
-    }
-}*/
-
 impl PartialEq for Frame {
     fn eq(&self, rhs: &Frame) -> bool {
         self.id == rhs.id
-            //&& self.cmd == rhs.cmd
-            //&& self.pnum == rhs.pnum
-            //&& self.data_length == rhs.data_length
             && self.data == rhs.data
     }
 }

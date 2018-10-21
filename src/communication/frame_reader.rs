@@ -250,6 +250,20 @@ mod test {
             reader.parse(&bytes2);
             assert_eq!(reader.pop_frame().unwrap(), t2);
             assert_eq!(reader.get_buffer_size(), 0);
+
+            // Trame découpée en plusieurs morceaux
+            let mut bytes3: Message = bytes1;
+            // suppression de [8, 9, 10]
+            bytes3.truncate(9);
+            reader.parse(&bytes3);
+            assert_eq!(reader.get_buffer_size(), 0);
+            bytes3.clear();
+            bytes3.push(8);
+            bytes3.push(9);
+            bytes3.push(10);
+            reader.parse(&bytes3);
+            assert_eq!(reader.pop_frame().expect("I should have read a frame."), t1);
+            assert_eq!(reader.get_buffer_size(), 0);
         }
     }
 }

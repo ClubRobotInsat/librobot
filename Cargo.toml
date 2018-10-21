@@ -1,5 +1,5 @@
 [package]
-authors = ["Paul Florence <florencepaul@hotmail.fr>"]
+authors = ["Paul Florence <florencepaul@hotmail.fr>, Benjamin BIGEY <bigey@etud.insa-toulouse.fr>"]
 name = "librobot"
 version = "0.2.0"
 build = "build.rs"
