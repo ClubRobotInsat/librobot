@@ -46,7 +46,7 @@
 //! Enfin, après avoir traité la trame informatique, le microcontrolleur réponds à la commande `06`
 //! avec un message d'id `05`, de commande `46` et `02` données `11` et `77`.
 
-use communication::Message;
+use transmission::Message;
 
 /// La structure de donnée qui est utilisée pour la communication en electronique.
 /// Pour la création d'une trame il vaut mieux utiliser la macro [frame!][macro@frame].

@@ -8,6 +8,7 @@ build = "build.rs"
 embedded-hal = "~0.2.1"
 nb = "~0.1.1"
 libc = { git = "https://github.com/gbip/libc", default-features = false ,features=["align"]}
+uom = {version = "0.20.1", default-features = false, features = ["autoconvert", "i64", "si"]}
 
 [dependencies.arrayvec]
 default-features = false

@@ -11,6 +11,8 @@
 extern crate std;
 
 pub extern crate arrayvec;
+extern crate uom as unit;
+
 extern crate embedded_hal;
 extern crate libc;
 extern crate nb;

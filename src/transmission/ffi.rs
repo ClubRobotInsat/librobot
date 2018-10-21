@@ -29,7 +29,7 @@ use libc::uint8_t;
 
 use arrayvec::ArrayVec;
 
-use communication::Message;
+use transmission::Message;
 
 /// Représente la signature de la fonction C que l'on appelle pour transformer la frame en octets.
 type WriteFunction<T> = unsafe extern "C" fn(*mut uint8_t, uint8_t, *const T) -> uint8_t;

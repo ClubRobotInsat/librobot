@@ -31,7 +31,7 @@
 
 mod ffi;
 pub mod servos;
-pub use communication::servos::*;
+pub use transmission::servos::*;
 
 use arrayvec::ArrayVec;
 

@@ -3,7 +3,7 @@
 use frame::Frame;
 
 use arrayvec::ArrayVec;
-use communication::{Message, FRAME_MAX_SIZE};
+use transmission::{Message, FRAME_MAX_SIZE};
 
 /// La taille du buffer interne dans lesquels sont stockés les [Frame]s lues par tous les
 /// [FrameReader].
