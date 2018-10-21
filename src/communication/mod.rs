@@ -35,8 +35,14 @@ pub use communication::servos::*;
 
 use arrayvec::ArrayVec;
 
+/// Taille maximale du message véhiculé par la trame
+pub const FRAME_MAX_SIZE: usize = frame_reader::FRAME_READER_INTERNAL_BUFFER_SIZE /* - 6*/;
 /// Un message est un tableau de 256 octets.
-pub type Message = ArrayVec<[u8; 256]>;
+pub type Message = ArrayVec<[u8; FRAME_MAX_SIZE]>;
 
 #[cfg(test)]
 mod tests;
+
+#[macro_use]
+pub mod frame;
+pub mod frame_reader;

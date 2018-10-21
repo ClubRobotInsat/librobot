@@ -48,8 +48,7 @@
 //! Enfin, après avoir traité la trame informatique, le microcontrolleur réponds à la commande `06`
 //! avec un message d'id `05`, de commande `46` et `02` données `11` et `77`.
 
-//use utils::*;
-use arrayvec::ArrayVec;
+use communication::Message;
 
 /// La structure de donnée qui est utilisée pour la communication en electronique.
 /// Pour la création d'une trame il vaut mieux utiliser la macro [frame!][macro@frame].
@@ -89,7 +88,7 @@ pub struct Frame {
     /// Le nombre de donnée dans la trame.
     //pub data_length: u8,
     /// Les données de la trame.
-    pub data: ArrayVec<[u8; 256]>,
+    pub data: Message,
 }
 
 /*impl Default for Frame {
@@ -152,15 +151,14 @@ macro_rules! frame {
         Frame::default()
     };
 
-    ($id:expr/*, $cmd:expr*/) => {{
+    ($id:expr) => {{
         let mut frame = Frame::default();
         frame.id = $id;
-        //frame.cmd = $cmd;
         frame
     }};
 
-    ($id:expr/*, $cmd:expr*/, $arr:expr) => {{
-        let mut t = frame!(/*, $cmd*/ $id);
+    ($id:expr, $arr:expr) => {{
+        let mut t = frame!($id);
         for i in $arr.iter() {
             let _ = t.push(*i);
         }
@@ -187,86 +185,18 @@ impl Frame {
     ///
     /// Il vaut mieux utiliser la macro [frame!][macro@frame] pour construire des trames.
     ///
-    pub fn new(
-        id: u8,
-        //cmd: u8,
-        //pnum: T,
-        //data_length: u8,
-        data: ArrayVec<[u8; 256]>,
-    ) -> Frame {
+    pub fn new(id: u8, data: Message) -> Frame {
         let mut t: Frame = Default::default();
         t.id = id;
-        //t.cmd = cmd;
-        //t.pnum = pnum.into();
-        //t.data_length = data_length;
         t.data = data;
         t
     }
-
-    /// Crée une nouvelle trame à partir des données fournies. Si `data` contiens plus de 8 données,
-    /// celles-ci sont ignorées. `data` peut contenir moins de 8 données.
-    ///
-    /// # Exemple
-    /// ```ignore
-    /// # use librobot::frame::Frame;
-    /// let t1 = Frame::new_from_slice(0x80,0xAA, None, &[0,1,2,3,4,5]);
-    /// let t2 = Frame{id : 0x80,
-    ///                cmd : 0xAA,
-    ///                pnum : None,
-    ///                data_length : 6,
-    ///                data : [0,1,2,3,4,5,0,0]};
-    /// /* Comme la longueur des données est de 6, les autres données seront ignorées */
-    /// assert_eq!(t1,t2);
-    /// ```
-    /// Il vaut mieux utiliser la macro [frame!][macro@frame] pour construire des trames.
-    ///
-    /*pub fn new_from_slice<T: Into<Option<u8>>>(id: u8, data: &[u8]) -> Frame {
-        let (data_copy, size) = slice_to_array_8(data);
-        Frame::new(id, size, data_copy)
-    }*/
-
-    /// Crée une nouvelle trame de pong :
-    /// * `id` : la valeur passée en argument
-    /// * `cmd` : `0x00`
-    /// * pnum : la valeur passée en argument
-    /// * data_length : `1`
-    /// * `data` : `[0xAA]`
-    /*pub fn new_pong<T: Into<Option<u8>>>(id: u8, pnum: T) -> Frame {
-        Frame::new(id, 0, pnum, 1, [0xAA, 0, 0, 0, 0, 0, 0, 0])
-    }*/
-
-    /// Crée une nouvelle trame d'acquitement.
-    /// * `id` : `0`
-    /// * `cmd` : `0`
-    /// * `pnum` : `pnum`
-    /// * `data_length` : `0`
-    /// * `data` : `[]`
-    /*pub fn new_ack(pnum: u8) -> Frame {
-        let mut t = frame!();
-        t.pnum = Some(pnum);
-        t
-    }*/
-
-    /// Renvoie vrai si il s'agit d'une trame de ping.
-    /// C'est à dire que :
-    /// * `cmd == 0`
-    /// * `data_length == 1`
-    /// * `data[0] == 0x55`
-    /*pub fn is_ping(self) -> bool {
-        self.cmd == 0 && self.data_length == 1 && self.data[0] == 0x55
-    }*/
-
-    /// Renvoie vrai si il s'agit d'une trame de pong.
-    /*pub fn is_pong(self) -> bool {
-        self.cmd == 0 && self.data_length == 1 && self.data[0] == 0xAA
-    }*/
 
     /// Rajoute un octet de donnée dans la trame.
     /// Renvoi `Err<()>` quand la trame a déjà 8 données.
     pub fn push(&mut self, data: u8) -> Result<(), ()> {
         if self.data.len() < 255 {
             self.data.push(data);
-            //self.data_length += 1;
             Ok(())
         } else {
             Err(())
@@ -274,40 +204,13 @@ impl Frame {
     }
 }
 
-/// Multiplex l'ID et la commande pour la transmission. Le premier bit doit être écris en premier.
-/*pub fn multiplex_id_cmd(id: u8, cmd: u8) -> (u8, u8) {
-    let first = id.wrapping_shr(4) & 0x0F;
-    let second = (cmd & 0x0F) + id.wrapping_shl(4);
-    (first, second)
-}*/
-
-/// Demultiplex l'ID et la commande d'une trame que l'on viens de recevoir. Il faut passer
-/// en premier les bits de poids forts (ceux qu'on a lu en premier).
-/*pub fn demultiplex_id_cmd(first: u8, second: u8) -> (u8, u8) {
-    let data = make_u16(first, second);
-    let id: u8 = (data.wrapping_shr(4)) as u8;
-    let cmd: u8 = (data as u8) & 0x0F;
-    (id, cmd)
-}*/
-
 fn make_u16(high: u8, low: u8) -> u16 {
     low as u16 + ((high as u16).wrapping_shr(8))
 }
 
-impl Into<ArrayVec<[u8; 256]>> for Frame {
-    fn into(self) -> ArrayVec<[u8; 256]> {
-        // Taille du tableau : 3 octet de header
-        //                   + 1 octet de type
-        //                   + 1 octet d'id
-        //                   + 1 octet de commande
-        //                   + 1 octet pour la taille des données
-        //                   + `data_length` octet
-        //                   ---------------------
-        //                   = 7 + data_length octet
-        //                   = 7 + 8 au plus
-        //                   --------------------
-        //                   = 15 au plus
-        let mut arr = ArrayVec::<[u8; 256]>::new();
+impl Into<Message> for Frame {
+    fn into(self) -> Message {
+        let mut arr = Message::new();
         arr.push(0xAC);
         arr.push(0xDC);
         arr.push(0xAB);
@@ -327,8 +230,8 @@ mod test {
 
     #[test]
     fn frame_macro() {
-        let t = frame!(0x1, /*0x11, */ [1, 2, 3]);
-        let mut array = ArrayVec::<[u8; 256]>::new();
+        let t = frame!(0x1, [1, 2, 3]);
+        let mut array = Message::new();
         array.push(1);
         array.push(2);
         array.push(3);
@@ -345,8 +248,8 @@ mod test {
     #[test]
     fn frame_conversion() {
         let t = frame!(0xFF, [0x55, 0x66, 0x1, 2, 3, 4, 5, 6]);
-        let bytes: ArrayVec<[u8; 256]> = t.clone().into();
-        let mut expected_result = ArrayVec::<[u8; 256]>::new();
+        let bytes: Message = t.clone().into();
+        let mut expected_result = Message::new();
         expected_result.push(0xAC);
         expected_result.push(0xDC);
         expected_result.push(0xAB);
@@ -363,5 +266,4 @@ mod test {
         expected_result.push(6);
         assert_eq!(bytes, expected_result);
     }
-
 }

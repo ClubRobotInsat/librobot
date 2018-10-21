@@ -3,12 +3,11 @@
 use frame::Frame;
 
 use arrayvec::ArrayVec;
+use communication::{Message, FRAME_MAX_SIZE};
 
 /// La taille du buffer interne dans lesquels sont stockés les [Frame]s lues par tous les
 /// [FrameReader].
 pub const FRAME_READER_INTERNAL_BUFFER_SIZE: usize = 256;
-/// Taille maximale du message véhiculé par la trame
-pub const FRAME_MAX_SIZE: usize = FRAME_READER_INTERNAL_BUFFER_SIZE /* - 6*/;
 
 #[derive(Debug, Clone)]
 pub(crate) enum FrameReaderState {
@@ -18,34 +17,13 @@ pub(crate) enum FrameReaderState {
     FrameType,
     BeginFrame,
     DataLength {
-        length: u8,
+        data_length: u8,
     },
     Data {
         data_length: u8,
         id: u8,
-        data: ArrayVec<[u8; FRAME_MAX_SIZE]>,
+        data: Message,
     },
-    /*Id {
-        pnum: u8,
-    },
-    Cmd {
-        id: u8,
-        pnum: u8,
-    },
-    Pnum,
-    DataLength {
-        id: u8,
-        cmd: u8,
-        pnum: u8,
-    },
-    Data {
-        id: u8,
-        cmd: u8,
-        pnum: u8,
-        data_length: u8,
-        data: [u8; 8],
-        current_index: u8,
-    },*/
 }
 
 /// Déserialise des [Frame] depuis un flux d'octet.
@@ -189,7 +167,7 @@ impl FrameStateMachine {
                         } else if byte as usize <= FRAME_MAX_SIZE {
                             DataLength {
                                 // DataLength représente la taille des données utiles, sans compter l'ID
-                                length: byte - 1,
+                                data_length: byte - 1,
                             }
                         } else {
                             // normalement on n'arrive pas ici
@@ -198,11 +176,17 @@ impl FrameStateMachine {
                         }
                     }
 
-                    DataLength { length } => {
-                        Data {
-                            data_length: length,
-                            id: byte,
-                            data: ArrayVec::new()
+                    DataLength { data_length } => {
+                        if data_length == 0 {
+                            // Le message véhiculé est vide
+                            result = Some(Frame::new(byte, Message::new()));
+                            H1
+                        } else {
+                            Data {
+                                data_length,
+                                id: byte,
+                                data: Message::new()
+                            }
                         }
                     }
 
@@ -253,59 +237,19 @@ mod test {
     fn frame_reader_standard_frame() {
         let mut reader = FrameReader::new();
         {
+            // Trame bien formée
             let t1 = frame!(0xAA, [5, 6, 7, 8, 9, 10]);
-            let bytes: ArrayVec<[u8; 256]> = t1.clone().into();
-            reader.parse(&bytes);
-            assert_eq!(reader.pop_frame().expect("I should have read a frame"), t1);
+            let bytes1: Message = t1.clone().into();
+            reader.parse(&bytes1);
+            assert_eq!(reader.pop_frame().expect("I should have read a frame."), t1);
+            assert_eq!(reader.get_buffer_size(), 0);
 
-            /*let mut arr = trame_to_u8_with_pnum(t1, t1.pnum.unwrap());
-            reader.parse(&arr);
-            assert_eq!(reader.pop_trame().unwrap(), t1);
-            assert_eq!(reader.get_buffer_size(), 0);
-            let t2 = trame!(0xFF, 0x00, 0x00, []);
-            arr = trame_to_u8_with_pnum(t2, t2.pnum.unwrap());
-            reader.parse(&arr);
-            assert_eq!(reader.pop_trame().unwrap(), t2);
-            assert_eq!(reader.get_buffer_size(), 0);
-            let t3 = trame!(0x00, 0x00, 0xFF, [1, 2, 3, 4, 5, 6, 7, 8]);
-            arr = trame_to_u8_with_pnum(t3, t3.pnum.unwrap());
-            reader.parse(&arr);
-            assert_eq!(reader.pop_trame().unwrap(), t3);
-            assert_eq!(reader.get_buffer_size(), 0);*/
-        }
-    }
-
-    /*
-    #[test]
-    fn trame_reader_standard_trame() {
-        let mut reader = TrameReader::new();
-        {
-            let t1 = trame!(0xAA, 0xBB, 0x99, [5, 6, 7, 8, 9, 10]);
-            let mut arr = trame_to_u8_with_pnum(t1, t1.pnum.unwrap());
-            reader.parse(&arr);
-            assert_eq!(reader.pop_trame().unwrap(), t1);
-            assert_eq!(reader.get_buffer_size(), 0);
-            let t2 = trame!(0xFF, 0x00, 0x00, []);
-            arr = trame_to_u8_with_pnum(t2, t2.pnum.unwrap());
-            reader.parse(&arr);
-            assert_eq!(reader.pop_trame().unwrap(), t2);
-            assert_eq!(reader.get_buffer_size(), 0);
-            let t3 = trame!(0x00, 0x00, 0xFF, [1, 2, 3, 4, 5, 6, 7, 8]);
-            arr = trame_to_u8_with_pnum(t3, t3.pnum.unwrap());
-            reader.parse(&arr);
-            assert_eq!(reader.pop_trame().unwrap(), t3);
+            // Message véhiculé vide
+            let t2 = frame!(0xDF, []);
+            let bytes2: Message = t2.clone().into();
+            reader.parse(&bytes2);
+            assert_eq!(reader.pop_frame().unwrap(), t2);
             assert_eq!(reader.get_buffer_size(), 0);
         }
     }
-    
-    #[test]
-    fn trame_reader_special_trame() {
-        let mut reader = TrameReader::new();
-        let arr_header = [0xAC, 0xDC, 0xAB, 0xBA, 0x00, 0xFF, 0xFF, 0xFF, 0x9];
-        let mut data: [u8; 107] = [0; 107];
-        data[0..8].clone_from_slice(&arr_header[0..8]);
-        reader.parse(&data);
-        assert_eq!(reader.pop_trame(), None);
-        assert_eq!(reader.get_buffer_size(), 0);
-    }*/
 }
