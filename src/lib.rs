@@ -15,5 +15,7 @@ extern crate embedded_hal;
 extern crate libc;
 extern crate nb;
 
-pub mod communication;
-pub use communication::*;
+pub mod transmission;
+pub use transmission::*;
+
+pub mod navigation;
