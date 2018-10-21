@@ -56,7 +56,7 @@ fabric.properties
 
 # Editor-based Rest Client
 .idea/httpRequests
-
+.idea/
 .idea/codeStyles/
 .idea/librobot.iml
 .idea/misc.xml
