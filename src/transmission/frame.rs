@@ -84,8 +84,7 @@ pub struct Frame {
 
 impl PartialEq for Frame {
     fn eq(&self, rhs: &Frame) -> bool {
-        self.id == rhs.id
-            && self.data == rhs.data
+        self.id == rhs.id && self.data == rhs.data
     }
 }
 

@@ -2,9 +2,7 @@
 //! Un `Servo` peut être créé à partir de la représentation C d'un servo-moteur fournie sous forme d'octet.
 
 use arrayvec::ArrayVec;
-use transmission::ffi::{
-    get_size_servo_frame, CSharedServos2019, ErrorParsing, FrameParsingTrait,
-};
+use transmission::ffi::{get_size_servo_frame, CSharedServos2019, ErrorParsing, FrameParsingTrait};
 use transmission::Message;
 
 /// Représentation d'un unique servo-moteur
