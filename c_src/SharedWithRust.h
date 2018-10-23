@@ -106,6 +106,11 @@ typedef struct SharedMoving2019 {
 	uint8_t parsing_failed;
 } SharedMoving2019;
 
+typedef struct SharedLED2019 {
+	uint8_t on_off;
+	uint8_t parsing_failed;
+} SharedLED2019;
+
 /// Fonctions définies en C et utilisées à la fois dans le code C++ et Rust
 
 typedef uint8_t buffer_size_t;
@@ -138,6 +143,12 @@ extern uint8_t get_size_avoidance_frame();
 extern SharedIO2019 io_read_frame(const uint8_t* message, buffer_size_t size);
 extern buffer_size_t io_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedIO2019* obj);
 extern uint8_t get_size_io_frame();
+
+// Format d'une trame :
+// <on_off: uint8_t>
+extern SharedLED2019 led_read_frame(const uint8_t* message, buffer_size_t size);
+extern buffer_size_t led_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedLED2019* obj);
+extern uint8_t get_size_led_frame();
 
 // TODO
 extern SharedMoving2019 moving_read_frame(const uint8_t* message, buffer_size_t size);

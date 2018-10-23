@@ -322,6 +322,35 @@ uint8_t get_size_io_frame() {
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+SharedLED2019 led_read_frame(const uint8_t* message, buffer_size_t size) {
+	SharedLED2019 s;
+
+	if(message == NULL || size < get_size_led_frame()) {
+		s.parsing_failed = 1;
+		return s;
+	}
+
+	s.on_off = message[0];
+	s.parsing_failed = 0;
+
+	return s;
+}
+
+buffer_size_t led_write_frame(uint8_t* buf, buffer_size_t buf_size, const SharedLED2019* obj) {
+	if(buf == NULL || obj == NULL || buf_size == 0) {
+		return 0;
+	}
+
+	buf[0] = obj->on_off;
+	return 1;
+}
+
+uint8_t get_size_led_frame() {
+	return 1;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 SharedMoving2019 moving_read_frame(const uint8_t* message, buffer_size_t size) {
 	SharedMoving2019 s;
 	s.parsing_failed = 1;
