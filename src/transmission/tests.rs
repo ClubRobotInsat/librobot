@@ -3,8 +3,8 @@ extern crate core;
 extern crate libc;
 
 use arrayvec::ArrayVec;
-use communication::ffi::*;
-use communication::servos::*;
+use transmission::ffi::*;
+use transmission::servos::*;
 
 #[test]
 fn test_servos() {
