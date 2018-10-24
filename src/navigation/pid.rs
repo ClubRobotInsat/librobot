@@ -78,14 +78,27 @@ where
 }
 
 /// Un moteur avec ses deux broches : vitesse et direction.
-#[derive(Debug)]
 pub struct Motor<MOT, DIR>
 where
-    MOT: Debug,
-    DIR: Debug,
+    MOT: PwmPin<Duty = u16> + Debug,
+    DIR: OutputPin + Debug,
 {
     pwm: MOT,
     dir: DIR,
+}
+
+impl<MOT, DIR> Debug for Motor<MOT, DIR>
+where
+    MOT: PwmPin<Duty = u16> + Debug,
+    DIR: OutputPin + Debug,
+{
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(
+            f,
+            "Motor {{ Dir : Unknown, Pwm : {} }}",
+            self.pwm.get_duty()
+        )
+    }
 }
 
 impl<MOT, DIR> Motor<MOT, DIR>
