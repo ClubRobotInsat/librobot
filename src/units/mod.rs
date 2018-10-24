@@ -5,21 +5,21 @@ use core::ops::{Add, Div, Mul, Sub};
 
 /// Une longueur exprimée en millimètre
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MilliMeter(u32);
+pub struct MilliMeter(i64);
 
 impl MilliMeter {
     /// Récupère la valeur en mètre
-    pub fn as_meters(&self) -> u32 {
+    pub fn as_meters(&self) -> i64 {
         self.as_millimeters() / 1000
     }
 
     /// Récupère la valeur en centimètre
-    pub fn as_centimeters(&self) -> u32 {
+    pub fn as_centimeters(&self) -> i64 {
         self.as_millimeters() / 10
     }
 
     /// Récupère la valeur en millimètre
-    pub fn as_millimeters(&self) -> u32 {
+    pub fn as_millimeters(&self) -> i64 {
         self.0
     }
 }

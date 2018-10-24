@@ -7,6 +7,9 @@ use embedded_hal::{PwmPin, Qei};
 
 use units::MilliMeter;
 
+/// Le PID du robot basé sur des unités du monde physique, il contiens :
+/// * un PID basé sur les ticks de roue codeuse
+/// * les informations nécessaires pour passer du monde des ticks de roue codeuses au monde physique
 #[derive(Debug)]
 pub struct RealWorldPid<L, R>
 where
@@ -18,6 +21,60 @@ where
     internal_pid: Pid<L, R>,
     coder_radius: MilliMeter,
     inter_axial_length: MilliMeter,
+}
+
+impl<L, R> RealWorldPid<L, R>
+where
+    L: Qei<Count = u16> + Debug,
+    R: Qei<Count = u16> + Debug,
+    u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
+    u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
+{
+    /// Crée un nouveau PID à partir de :
+    /// *  2 struct de `embedded_hal` wrappés dans des `QeiManager`représentant les encodeurs quadratiques gauche et droite
+    /// * les coefficients de l'asservissement,
+    /// * la valeur maximale de la consigne en sortie,
+    /// * les valeurs physiques du robot :
+    ///     * distance interaxe en mm
+    ///     * rayon d'une roue codeuse en mm
+    pub fn new(
+        qei_left: QeiManager<L>,
+        qei_right: QeiManager<R>,
+        coder_radius: MilliMeter,
+        inter_axial_length: MilliMeter,
+        pos_kp: i64,
+        pos_kd: i64,
+        orient_kp: i64,
+        orient_kd: i64,
+        cap: u16,
+    ) -> Self {
+        RealWorldPid {
+            internal_pid: Pid::new(
+                pos_kp, pos_kd, orient_kp, orient_kd, 1, cap, qei_left, qei_right,
+            ),
+            coder_radius,
+            inter_axial_length,
+        }
+    }
+
+    /// Renvoie un tuple contenant la commande à appliqué au moteur gauche et au moteur droit
+    pub fn update(&mut self) -> (Command, Command) {
+        self.internal_pid.update()
+    }
+
+    /// Ordonne au robot d'avancer de `distance`
+    pub fn forward(&mut self, distance: MilliMeter) {
+        let consigne = distance.as_millimeters() * 1000
+            / (2 * (core::f32::consts::PI * 1000.0) as i64 * self.coder_radius.as_millimeters());
+        self.internal_pid.increment_position_goal(consigne);
+    }
+
+    /// Ordonne au robot de reculer de `distance`
+    pub fn backward(&mut self, distance: MilliMeter) {
+        let consigne = distance.as_millimeters() * 1000
+            / (2 * (core::f32::consts::PI * 1000.0) as i64 * self.coder_radius.as_millimeters());
+        self.internal_pid.decrement_position_goal(consigne);
+    }
 }
 
 /// Un moteur avec ses deux broches : vitesse et direction.
@@ -100,9 +157,9 @@ where
     // La valeur maximale de la commande en sortie
     cap: u16,
     // La consigne de position du robot exprimée en nombre de tick de roue codeuse
-    position_consigne: i64,
+    position_order: i64,
     // La consigne d'angle exprimée en différence de tick de chaque roue codeuse
-    orientation_consigne: i64,
+    orientation_order: i64,
 }
 
 // Implémentation du PID
@@ -139,19 +196,27 @@ where
             orient_kd,
             internal_multiplier,
             cap,
-            position_consigne: 0,
-            orientation_consigne: 0,
+            position_order: 0,
+            orientation_order: 0,
         }
     }
 
     /// Mets à jour la consigne en position en terme de tick de roues codeuses
     pub(crate) fn set_position_goal(&mut self, pos: i64) {
-        self.position_consigne = pos;
+        self.position_order = pos;
+    }
+
+    pub(crate) fn increment_position_goal(&mut self, pos: i64) {
+        self.position_order += pos;
+    }
+
+    pub(crate) fn decrement_position_goal(&mut self, pos: i64) {
+        self.position_order -= pos;
     }
 
     /// Mets à jour la consigne en orientation en terme de tick de roues codeuses.
     pub(crate) fn set_orientation_goal(&mut self, orientation: i64) {
-        self.orientation_consigne = orientation;
+        self.orientation_order = orientation;
     }
 
     /// Renvoie la nouvelle consigne à appliquer aux deux roues pour atteindre la commande en position
@@ -164,7 +229,7 @@ where
     ) -> i64 {
         let dist = (left_count + right_count) / 2;
         let speed = (left_speed + right_speed) / 2;
-        let diff = self.position_consigne as i64 - dist;
+        let diff = self.position_order as i64 - dist;
         let cmd = (diff * self.pos_kp) - self.pos_kd * speed;
         cmd
     }
@@ -179,7 +244,7 @@ where
     ) -> (i64, i64) {
         let orientation = right_count - left_count;
         let speed = right_speed - left_speed;
-        let diff = self.orientation_consigne - orientation;
+        let diff = self.orientation_order - orientation;
         let cmd = (diff * self.orient_kp) - self.orient_kd * speed;
         (-cmd, cmd)
     }
