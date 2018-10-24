@@ -332,4 +332,46 @@ mod test {
         assert!((motor_right.get_real_position() + 9137).abs()<= 9);
     }
 
+    #[test]
+    fn pid_rotation_left() {
+        let mut motor_left = DummyMotor::new();
+        let mut motor_right = DummyMotor::new();
+        let qei_left = QeiManager::new(motor_left.clone());
+        let qei_right = QeiManager::new(motor_right.clone());
+        let mut pid = Pid::new(1, 1, 1, 1, 1, 800, qei_left, qei_right);
+
+        pid.set_orientation_goal(733);
+        for _ in 0..999 {
+            let (cmdl, cmdr) = pid.update();
+            motor_left.apply_command(cmdl);
+            motor_right.apply_command(cmdr);
+            motor_left.update();
+            motor_right.update();
+        }
+        // Erreur inférieure à 0.1%
+        assert!((motor_left.get_real_position() + 733/2).abs() <= 1,"{} should be {}", motor_left.get_real_position(), 733/2);
+        assert!((motor_right.get_real_position() - 733/2).abs() <= 1,"{} should be {}", motor_right.get_real_position(), 733/2);
+    }
+
+    #[test]
+    fn pid_rotation_right() {
+        let mut motor_left = DummyMotor::new();
+        let mut motor_right = DummyMotor::new();
+        let qei_left = QeiManager::new(motor_left.clone());
+        let qei_right = QeiManager::new(motor_right.clone());
+        let mut pid = Pid::new(1, 1, 1, 1, 1, 800, qei_left, qei_right);
+
+        pid.set_orientation_goal(-733);
+        for _ in 0..999 {
+            let (cmdl, cmdr) = pid.update();
+            motor_left.apply_command(cmdl);
+            motor_right.apply_command(cmdr);
+            motor_left.update();
+            motor_right.update();
+        }
+        // Erreur inférieure à 0.1%
+        assert!((motor_left.get_real_position() - 733/2).abs() <= 1,"{} should be {}", motor_left.get_real_position(), 733/2);
+        assert!((motor_right.get_real_position() + 733/2).abs() <= 1,"{} should be {}", motor_right.get_real_position(), 733/2);
+    }
+
 }
