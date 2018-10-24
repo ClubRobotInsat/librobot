@@ -5,7 +5,7 @@ use core::ops::{Add, Div, Mul, Sub};
 
 /// Une longueur exprimée en millimètre
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub struct MilliMeter(i64);
+pub struct MilliMeter(pub i64);
 
 impl MilliMeter {
     /// Récupère la valeur en mètre
