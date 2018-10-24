@@ -10,11 +10,10 @@ use units::MilliMeter;
 /// Le PID du robot basé sur des unités du monde physique, il contiens :
 /// * un PID basé sur les ticks de roue codeuse
 /// * les informations nécessaires pour passer du monde des ticks de roue codeuses au monde physique
-#[derive(Debug)]
 pub struct RealWorldPid<L, R>
 where
-    L: Qei<Count = u16> + Debug,
-    R: Qei<Count = u16> + Debug,
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
     u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
     u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
 {
@@ -25,8 +24,8 @@ where
 
 impl<L, R> RealWorldPid<L, R>
 where
-    L: Qei<Count = u16> + Debug,
-    R: Qei<Count = u16> + Debug,
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
     u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
     u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
 {
