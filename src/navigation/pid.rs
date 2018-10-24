@@ -1,22 +1,40 @@
-use navigation::ms::*;
-
-use core::fmt::{Display, Formatter, Result};
+use core::fmt::{Debug, Display, Formatter, Result};
 
 use qei::QeiManager;
 
 use embedded_hal::digital::OutputPin;
 use embedded_hal::{PwmPin, Qei};
 
+use units::MilliMeter;
+
+#[derive(Debug)]
+pub struct RealWorldPid<L, R>
+where
+    L: Qei<Count = u16> + Debug,
+    R: Qei<Count = u16> + Debug,
+    u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
+    u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
+{
+    internal_pid: Pid<L, R>,
+    coder_radius: MilliMeter,
+    inter_axial_length: MilliMeter,
+}
+
 /// Un moteur avec ses deux broches : vitesse et direction.
-pub struct Motor<MOT, DIR> {
+#[derive(Debug)]
+pub struct Motor<MOT, DIR>
+where
+    MOT: Debug,
+    DIR: Debug,
+{
     pwm: MOT,
     dir: DIR,
 }
 
 impl<MOT, DIR> Motor<MOT, DIR>
 where
-    MOT: PwmPin<Duty = u16>,
-    DIR: OutputPin,
+    MOT: PwmPin<Duty = u16> + Debug,
+    DIR: OutputPin + Debug,
 {
     /// Crée une nouvelle structure de gestion moteur à partir d'une broche de direction et d'une
     /// broche de PWM :
@@ -61,7 +79,14 @@ impl Display for Command {
 }
 
 /// Le PID du robot
-pub struct Pid<L, R> {
+#[derive(Debug)]
+pub(crate) struct Pid<L, R>
+where
+    L: Qei<Count = u16> + Debug,
+    R: Qei<Count = u16> + Debug,
+    u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
+    u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
+{
     old_left_count: i64,
     old_right_count: i64,
     left_qei: QeiManager<L>,
@@ -83,8 +108,8 @@ pub struct Pid<L, R> {
 // Implémentation du PID
 impl<L, R> Pid<L, R>
 where
-    L: Qei<Count = u16>,
-    R: Qei<Count = u16>,
+    L: Qei<Count = u16> + Debug,
+    R: Qei<Count = u16> + Debug,
     u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
     u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
 {
@@ -93,7 +118,7 @@ where
     /// * d'une valeur maximale de sortie (la valeur du registre ARR du timer qui gère la PWM par
     /// exemple)
     /// * deux roues codeuses
-    pub fn new(
+    pub(crate) fn new(
         pos_kp: i64,
         pos_kd: i64,
         orient_kp: i64,
@@ -120,12 +145,12 @@ where
     }
 
     /// Mets à jour la consigne en position en terme de tick de roues codeuses
-    pub fn set_position_goal(&mut self, pos: i64) {
+    pub(crate) fn set_position_goal(&mut self, pos: i64) {
         self.position_consigne = pos;
     }
 
     /// Mets à jour la consigne en orientation en terme de tick de roues codeuses.
-    pub fn set_orientation_goal(&mut self, orientation: i64) {
+    pub(crate) fn set_orientation_goal(&mut self, orientation: i64) {
         self.orientation_consigne = orientation;
     }
 
@@ -177,7 +202,7 @@ where
 
     /// Renvoie la nouvelle consigne à appliquer aux roues pour le pid
     /// L'algorithme est issue de [cette](https://www.rcva.fr/10-ans-dexperience/9/) page internet.
-    pub fn update(&mut self) -> (Command, Command) {
+    pub(crate) fn update(&mut self) -> (Command, Command) {
         // Mise à jour des QEI QEI
         self.left_qei.sample_unwrap();
         self.right_qei.sample_unwrap();
@@ -217,14 +242,13 @@ mod test {
     use navigation::pid::{Command, Pid};
     use qei::QeiManager;
 
-    #[derive(Clone, Copy)]
+    #[derive(Debug, Clone, Copy)]
     enum Direction {
         Front,
         Back,
     }
 
-
-    #[derive(Clone)]
+    #[derive(Debug, Clone)]
     struct DummyMotor {
         speed: Rc<Cell<u16>>,
         real_position: Rc<Cell<i64>>,
@@ -243,17 +267,18 @@ mod test {
         }
 
         fn update(&mut self) {
-            match self.dir.get(){
+            match self.dir.get() {
                 Direction::Front => {
-                    self.real_position.replace(self.real_position.get() + self.speed.get() as i64);
-                    self.wrapped_position.replace(self.wrapped_position.get().wrapping_add(self
-                        .speed.get()));
+                    self.real_position
+                        .replace(self.real_position.get() + self.speed.get() as i64);
+                    self.wrapped_position
+                        .replace(self.wrapped_position.get().wrapping_add(self.speed.get()));
                 }
                 Direction::Back => {
-                    self.real_position.replace(self.real_position.get() - self.speed.get() as i64);
-                    self.wrapped_position.replace(self.wrapped_position.get().wrapping_sub(self
-                        .speed.get()));
-
+                    self.real_position
+                        .replace(self.real_position.get() - self.speed.get() as i64);
+                    self.wrapped_position
+                        .replace(self.wrapped_position.get().wrapping_sub(self.speed.get()));
                 }
             }
         }
@@ -261,11 +286,11 @@ mod test {
         fn apply_command(&mut self, command: Command) {
             match command {
                 Command::Front(speed) => {
-                    self.speed.replace(speed/5);
+                    self.speed.replace(speed / 5);
                     self.dir.replace(Direction::Front);
                 }
                 Command::Back(speed) => {
-                    self.speed.replace(speed/5);
+                    self.speed.replace(speed / 5);
                     self.dir.replace(Direction::Back);
                 }
             }
@@ -307,8 +332,8 @@ mod test {
             motor_right.update();
         }
         // Erreur inférieure à 0.1%
-        assert!((motor_left.get_real_position() - 9000).abs()<= 9);
-        assert!((motor_right.get_real_position() - 9000).abs()<= 9);
+        assert!((motor_left.get_real_position() - 9000).abs() <= 9);
+        assert!((motor_right.get_real_position() - 9000).abs() <= 9);
     }
 
     #[test]
@@ -328,8 +353,8 @@ mod test {
             motor_right.update();
         }
         // Erreur inférieure à 0.1%
-        assert!((motor_left.get_real_position() + 9137).abs()<= 9);
-        assert!((motor_right.get_real_position() + 9137).abs()<= 9);
+        assert!((motor_left.get_real_position() + 9137).abs() <= 9);
+        assert!((motor_right.get_real_position() + 9137).abs() <= 9);
     }
 
     #[test]
@@ -349,8 +374,18 @@ mod test {
             motor_right.update();
         }
         // Erreur inférieure à 0.1%
-        assert!((motor_left.get_real_position() + 733/2).abs() <= 1,"{} should be {}", motor_left.get_real_position(), 733/2);
-        assert!((motor_right.get_real_position() - 733/2).abs() <= 1,"{} should be {}", motor_right.get_real_position(), 733/2);
+        assert!(
+            (motor_left.get_real_position() + 733 / 2).abs() <= 1,
+            "{} should be {}",
+            motor_left.get_real_position(),
+            733 / 2
+        );
+        assert!(
+            (motor_right.get_real_position() - 733 / 2).abs() <= 1,
+            "{} should be {}",
+            motor_right.get_real_position(),
+            733 / 2
+        );
     }
 
     #[test]
@@ -370,8 +405,18 @@ mod test {
             motor_right.update();
         }
         // Erreur inférieure à 0.1%
-        assert!((motor_left.get_real_position() - 733/2).abs() <= 1,"{} should be {}", motor_left.get_real_position(), 733/2);
-        assert!((motor_right.get_real_position() + 733/2).abs() <= 1,"{} should be {}", motor_right.get_real_position(), 733/2);
+        assert!(
+            (motor_left.get_real_position() - 733 / 2).abs() <= 1,
+            "{} should be {}",
+            motor_left.get_real_position(),
+            733 / 2
+        );
+        assert!(
+            (motor_right.get_real_position() + 733 / 2).abs() <= 1,
+            "{} should be {}",
+            motor_right.get_real_position(),
+            733 / 2
+        );
     }
 
 }

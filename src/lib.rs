@@ -12,9 +12,6 @@ extern crate std;
 
 pub extern crate arrayvec;
 
-#[macro_use]
-extern crate dimensioned as dim;
-
 extern crate embedded_hal;
 extern crate libc;
 extern crate nb;
