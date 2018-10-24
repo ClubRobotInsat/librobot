@@ -148,11 +148,10 @@ impl Display for Command {
 }
 
 /// Le PID du robot
-#[derive(Debug)]
 pub(crate) struct Pid<L, R>
 where
-    L: Qei<Count = u16> + Debug,
-    R: Qei<Count = u16> + Debug,
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
     u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
     u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
 {
@@ -177,8 +176,8 @@ where
 // Implémentation du PID
 impl<L, R> Pid<L, R>
 where
-    L: Qei<Count = u16> + Debug,
-    R: Qei<Count = u16> + Debug,
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
     u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
     u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
 {
