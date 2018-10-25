@@ -7,9 +7,12 @@ use embedded_hal::{PwmPin, Qei};
 
 use units::MilliMeter;
 
+use navigation::Coord;
+
 /// Le PID du robot basé sur des unités du monde physique, il contiens :
 /// * un PID basé sur les ticks de roue codeuse
 /// * les informations nécessaires pour passer du monde des ticks de roue codeuses au monde physique
+#[derive(Debug)]
 pub struct RealWorldPid<L, R>
 where
     L: Qei<Count = u16>,
@@ -63,9 +66,10 @@ where
 
     /// Ordonne au robot d'avancer de `distance`
     pub fn forward(&mut self, distance: MilliMeter) {
-        let consigne = distance.as_millimeters() * 1000
-            / (2 * (core::f32::consts::PI * 1000.0) as i64 * self.coder_radius.as_millimeters());
-        self.internal_pid.increment_position_goal(consigne);
+        let distance_per_wheel_turn = (self.coder_radius.as_millimeters() *2*31415);
+        let nb_wheel_turn = distance.as_millimeters() * 100 * 100_000/ distance_per_wheel_turn;
+        let ticks = (1024/100)*nb_wheel_turn;
+        self.internal_pid.increment_position_goal(ticks);
     }
 
     /// Ordonne au robot de reculer de `distance`
@@ -74,12 +78,22 @@ where
             / (2 * (core::f32::consts::PI * 1000.0) as i64 * self.coder_radius.as_millimeters());
         self.internal_pid.decrement_position_goal(consigne);
     }
+
+    /// Renvoies la position du robot
+    pub fn get_position(&mut self) -> Coord {
+        unimplemented!()
+    }
+
+    /// Remets à 0 l'origine du robot
+    pub fn reset_origin(&mut self) {
+        self.internal_pid.reset_origin()
+    }
 }
 
 /// Un moteur avec ses deux broches : vitesse et direction.
 pub struct Motor<MOT, DIR>
 where
-    MOT: PwmPin<Duty = u16> ,
+    MOT: PwmPin<Duty = u16>,
     DIR: OutputPin,
 {
     pwm: MOT,
@@ -173,6 +187,23 @@ where
     orientation_order: i64,
 }
 
+impl<L, R> Debug for Pid<L, R>
+where
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
+    u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
+    u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
+{
+    fn fmt(&self, f: &mut Formatter) -> Result {
+        write!(
+            f,
+            "QeiLeft : {}, QeiRight : {}",
+            self.left_qei.count(),
+            self.right_qei.count()
+        )
+    }
+}
+
 // Implémentation du PID
 impl<L, R> Pid<L, R>
 where
@@ -210,6 +241,11 @@ where
             position_order: 0,
             orientation_order: 0,
         }
+    }
+
+    pub(crate) fn reset_origin(&mut self) {
+        self.left_qei.reset();
+        self.right_qei.reset();
     }
 
     /// Mets à jour la consigne en position en terme de tick de roues codeuses
@@ -315,8 +351,9 @@ mod test {
     use std::rc::Rc;
 
     use embedded_hal::Qei;
-    use navigation::pid::{Command, Pid};
+    use navigation::pid::{Command, Pid, RealWorldPid};
     use qei::QeiManager;
+    use units::MilliMeter;
 
     #[derive(Debug, Clone, Copy)]
     enum Direction {
@@ -493,6 +530,33 @@ mod test {
             motor_right.get_real_position(),
             733 / 2
         );
+    }
+
+    #[test]
+    fn real_world_pid_forward() {
+        let mut motor_left = DummyMotor::new();
+        let mut motor_right = DummyMotor::new();
+        let qei_left = QeiManager::new(motor_left.clone());
+        let qei_right = QeiManager::new(motor_right.clone());
+        let mut pid = RealWorldPid::new(
+            qei_left,
+            qei_right,
+            MilliMeter(31),
+            MilliMeter(223),
+            1,
+            1,
+            1,
+            1,
+            800,
+        );
+        pid.forward(MilliMeter(50));
+        for _ in 0..500 {
+            let (cmdl, cmdr) = pid.update();
+            motor_left.apply_command(cmdl);
+            motor_right.apply_command(cmdr);
+            motor_left.update();
+            motor_right.update();
+        }
     }
 
 }

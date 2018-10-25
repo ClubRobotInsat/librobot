@@ -33,3 +33,16 @@ pub struct Coord {
     /// La composante largeur (x)
     pub y: MilliMeter,
 }
+
+impl Coord {
+    /// Crées des coordonnées à partir d'un nombre de tick
+    pub fn from_tick_count(left : i64, right : i64, inter_axial : MilliMeter, coder_radius : MilliMeter) -> Self {
+        unimplemented!()
+        /*
+        Coord {
+            x : 0,
+            y : 0
+        }
+        */
+    }
+}
