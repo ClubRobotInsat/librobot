@@ -29,20 +29,21 @@
 //!          v(t)                           v(t)
 //! ```
 
-mod ffi;
-pub mod servos;
 pub use transmission::servos::*;
 
 use arrayvec::ArrayVec;
+
+
+#[macro_use]
+pub mod frame;
+pub mod frame_reader;
+mod ffi;
+pub mod servos;
+
+#[cfg(test)]
+mod tests;
 
 /// Taille maximale du message véhiculé par la trame
 pub const FRAME_MAX_SIZE: usize = frame_reader::FRAME_READER_INTERNAL_BUFFER_SIZE /* - 6*/;
 /// Un message est un tableau de 256 octets.
 pub type Message = ArrayVec<[u8; FRAME_MAX_SIZE]>;
-
-#[cfg(test)]
-mod tests;
-
-#[macro_use]
-pub mod frame;
-pub mod frame_reader;
