@@ -19,6 +19,6 @@ extern crate qei;
 
 pub use transmission::*;
 
+pub mod navigation;
 pub mod transmission;
 pub mod units;
-pub mod navigation;

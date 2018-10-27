@@ -36,7 +36,12 @@ pub struct Coord {
 
 impl Coord {
     /// Crées des coordonnées à partir d'un nombre de tick
-    pub fn from_tick_count(left : i64, right : i64, inter_axial : MilliMeter, coder_radius : MilliMeter) -> Self {
+    pub fn from_tick_count(
+        left: i64,
+        right: i64,
+        inter_axial: MilliMeter,
+        coder_radius: MilliMeter,
+    ) -> Self {
         unimplemented!()
         /*
         Coord {

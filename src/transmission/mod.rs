@@ -33,11 +33,10 @@ pub use transmission::servos::*;
 
 use arrayvec::ArrayVec;
 
-
 #[macro_use]
 pub mod frame;
-pub mod frame_reader;
 mod ffi;
+pub mod frame_reader;
 pub mod servos;
 
 #[cfg(test)]

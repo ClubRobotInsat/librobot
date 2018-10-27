@@ -44,15 +44,15 @@ where
         qei_right: QeiManager<R>,
         coder_radius: MilliMeter,
         inter_axial_length: MilliMeter,
-        pos_kp: i64,
-        pos_kd: i64,
-        orient_kp: i64,
-        orient_kd: i64,
+        pos_kp: f32,
+        pos_kd: f32,
+        orient_kp: f32,
+        orient_kd: f32,
         cap: u16,
     ) -> Self {
         RealWorldPid {
             internal_pid: Pid::new(
-                pos_kp, pos_kd, orient_kp, orient_kd, 1, cap, qei_left, qei_right,
+                pos_kp, pos_kd, orient_kp, orient_kd, cap, qei_left, qei_right,
             ),
             coder_radius,
             inter_axial_length,
@@ -66,17 +66,18 @@ where
 
     /// Ordonne au robot d'avancer de `distance`
     pub fn forward(&mut self, distance: MilliMeter) {
-        let distance_per_wheel_turn = (self.coder_radius.as_millimeters() *2*31415);
-        let nb_wheel_turn = distance.as_millimeters() * 100 * 100_000/ distance_per_wheel_turn;
-        let ticks = (1024/100)*nb_wheel_turn;
-        self.internal_pid.increment_position_goal(ticks);
+        let distance_per_wheel_turn = self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
+        let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
+        let ticks = 1024.0*nb_wheel_turn;
+        self.internal_pid.increment_position_goal(ticks as i64);
     }
 
     /// Ordonne au robot de reculer de `distance`
     pub fn backward(&mut self, distance: MilliMeter) {
-        let consigne = distance.as_millimeters() * 1000
-            / (2 * (core::f32::consts::PI * 1000.0) as i64 * self.coder_radius.as_millimeters());
-        self.internal_pid.decrement_position_goal(consigne);
+        let distance_per_wheel_turn = self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
+        let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
+        let ticks = 1024.0*nb_wheel_turn;
+        self.internal_pid.decrement_position_goal(ticks as i64);
     }
 
     /// Renvoies la position du robot
@@ -173,12 +174,10 @@ where
     old_right_count: i64,
     left_qei: QeiManager<L>,
     right_qei: QeiManager<R>,
-    pos_kp: i64,
-    pos_kd: i64,
-    orient_kp: i64,
-    orient_kd: i64,
-    // Le multiplicateur interne pour augmenter la précision des calculs
-    internal_multiplier: i64,
+    pos_kp: f32,
+    pos_kd: f32,
+    orient_kp: f32,
+    orient_kd: f32,
     // La valeur maximale de la commande en sortie
     cap: u16,
     // La consigne de position du robot exprimée en nombre de tick de roue codeuse
@@ -218,11 +217,10 @@ where
     /// exemple)
     /// * deux roues codeuses
     pub(crate) fn new(
-        pos_kp: i64,
-        pos_kd: i64,
-        orient_kp: i64,
-        orient_kd: i64,
-        internal_multiplier: i64,
+        pos_kp: f32,
+        pos_kd: f32,
+        orient_kp: f32,
+        orient_kd: f32,
         cap: u16,
         left_qei: QeiManager<L>,
         right_qei: QeiManager<R>,
@@ -236,11 +234,15 @@ where
             pos_kd,
             orient_kp,
             orient_kd,
-            internal_multiplier,
             cap,
             position_order: 0,
             orientation_order: 0,
         }
+    }
+
+    /// Renvoie la valeur en ticks de la distance parcourue par les roues codeuses
+    pub (crate) fn get_qei_count(&mut self) -> (i64,i64) {
+        (self.left_qei.count(),self.right_qei.count())
     }
 
     pub(crate) fn reset_origin(&mut self) {
@@ -273,11 +275,11 @@ where
         right_count: i64,
         left_speed: i64,
         right_speed: i64,
-    ) -> i64 {
+    ) -> f32 {
         let dist = (left_count + right_count) / 2;
         let speed = (left_speed + right_speed) / 2;
         let diff = self.position_order as i64 - dist;
-        let cmd = (diff * self.pos_kp) - self.pos_kd * speed;
+        let cmd = (diff as f32 * self.pos_kp) - self.pos_kd as f32 * speed as f32;
         cmd
     }
 
@@ -288,23 +290,23 @@ where
         right_count: i64,
         left_speed: i64,
         right_speed: i64,
-    ) -> (i64, i64) {
+    ) -> (f32, f32) {
         let orientation = right_count - left_count;
         let speed = right_speed - left_speed;
         let diff = self.orientation_order - orientation;
-        let cmd = (diff * self.orient_kp) - self.orient_kd * speed;
+        let cmd = (diff as f32 * self.orient_kp) - self.orient_kd * speed as f32;
         (-cmd, cmd)
     }
 
-    fn truncate(&self, val: i64) -> Command {
-        if val.is_positive() {
-            if val > self.cap as i64 {
+    fn truncate(&self, val: f32) -> Command {
+        if val.is_sign_positive() {
+            if val > self.cap as f32 {
                 Command::Front(self.cap)
             } else {
                 Command::Front(val as u16)
             }
         } else {
-            if -val > self.cap as i64 {
+            if -val > self.cap as f32 {
                 Command::Back(self.cap)
             } else {
                 Command::Back((-val) as u16)
@@ -434,7 +436,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let qei_left = QeiManager::new(motor_left.clone());
         let qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1, 1, 1, 1, 1, 800, qei_left, qei_right);
+        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800, qei_left, qei_right);
 
         pid.set_position_goal(9000);
         for _ in 0..999 {
@@ -455,7 +457,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let qei_left = QeiManager::new(motor_left.clone());
         let qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1, 1, 1, 1, 1, 800, qei_left, qei_right);
+        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800, qei_left, qei_right);
 
         pid.set_position_goal(-9137);
         for _ in 0..999 {
@@ -476,7 +478,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let qei_left = QeiManager::new(motor_left.clone());
         let qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1, 1, 1, 1, 1, 800, qei_left, qei_right);
+        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800, qei_left, qei_right);
 
         pid.set_orientation_goal(733);
         for _ in 0..999 {
@@ -507,7 +509,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let qei_left = QeiManager::new(motor_left.clone());
         let qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1, 1, 1, 1, 1, 800, qei_left, qei_right);
+        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800, qei_left, qei_right);
 
         pid.set_orientation_goal(-733);
         for _ in 0..999 {
@@ -543,10 +545,10 @@ mod test {
             qei_right,
             MilliMeter(31),
             MilliMeter(223),
-            1,
-            1,
-            1,
-            1,
+            1.0,
+            1.0,
+            1.0,
+            1.0,
             800,
         );
         pid.forward(MilliMeter(50));
