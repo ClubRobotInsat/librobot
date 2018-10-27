@@ -1,4 +1,7 @@
+//! Contiens les types permettant de manipuler un PID pour le déplacement du robot.
+
 use core::fmt::{Debug, Display, Formatter, Result};
+use core::f32;
 
 use qei::QeiManager;
 
@@ -80,8 +83,29 @@ where
         self.internal_pid.decrement_position_goal(ticks as i64);
     }
 
+    /// Permet de récuperer l'orientation du robot à partir d'une différence de ticks de roue codeuse.
+    /// Renvoi des radians
+    pub fn get_orientation(&mut self) -> f32 {
+        // On a 2pi = un tour de robot, soit 2 * pi radians = inter_axial * 2 * pi mm
+        // Donc, nb_tour = 2*inter_axial*pi / ((tick_left - tick_right) * wheel_diameter)
+        // On converti une différence de tick en angle
+        let (tick_left, tick_right) = self.internal_pid.get_qei_count();
+        2.0 * self.inter_axial_length.as_millimeters() as f32 * core::f32::consts::PI
+        / ((tick_left - tick_right) as f32 * self.coder_radius.as_millimeters() as f32)
+
+    }
+
     /// Renvoies la position du robot
     pub fn get_position(&mut self) -> Coord {
+        let (tick_left, tick_right) = self.internal_pid.get_qei_count();
+
+
+
+        let orientation = self.get_orientation();
+        let distance = ((tick_left+tick_right) as f32/(2.0*1024.0))
+            * self.coder_radius.as_millimeters() as f32;
+
+        //let (sin,cos) = orientation.sin_cos();
         unimplemented!()
     }
 
@@ -149,7 +173,9 @@ where
 /// Une commande pour un moteur : une direction et une vitesse sur 16 bits (0 : vitesse nulle).
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum Command {
+    /// Le moteur doit avancer à la vitesse fournie
     Front(u16),
+    /// Le moteur doit reculer à la vitesse fournie
     Back(u16),
 }
 

@@ -21,8 +21,9 @@
 //!+-----------------------+
 //! ```
 
-pub mod pid;
+mod pid;
 
+pub use self::pid::*;
 use units::MilliMeter;
 
 /// Les coordonnées x,y d'un point sur la table
