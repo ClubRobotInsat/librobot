@@ -1,7 +1,7 @@
 //! Contiens les types permettant de manipuler un PID pour le déplacement du robot.
 
-use core::fmt::{Debug, Display, Formatter, Result};
 use core::f32;
+use core::fmt::{Debug, Display, Formatter, Result};
 
 use qei::QeiManager;
 
@@ -69,17 +69,19 @@ where
 
     /// Ordonne au robot d'avancer de `distance`
     pub fn forward(&mut self, distance: MilliMeter) {
-        let distance_per_wheel_turn = self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
+        let distance_per_wheel_turn =
+            self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
-        let ticks = 1024.0*nb_wheel_turn;
+        let ticks = 1024.0 * nb_wheel_turn;
         self.internal_pid.increment_position_goal(ticks as i64);
     }
 
     /// Ordonne au robot de reculer de `distance`
     pub fn backward(&mut self, distance: MilliMeter) {
-        let distance_per_wheel_turn = self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
+        let distance_per_wheel_turn =
+            self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
-        let ticks = 1024.0*nb_wheel_turn;
+        let ticks = 1024.0 * nb_wheel_turn;
         self.internal_pid.decrement_position_goal(ticks as i64);
     }
 
@@ -91,18 +93,15 @@ where
         // On converti une différence de tick en angle
         let (tick_left, tick_right) = self.internal_pid.get_qei_count();
         2.0 * self.inter_axial_length.as_millimeters() as f32 * core::f32::consts::PI
-        / ((tick_left - tick_right) as f32 * self.coder_radius.as_millimeters() as f32)
-
+            / ((tick_left - tick_right) as f32 * self.coder_radius.as_millimeters() as f32)
     }
 
     /// Renvoies la position du robot
     pub fn get_position(&mut self) -> Coord {
         let (tick_left, tick_right) = self.internal_pid.get_qei_count();
 
-
-
         let orientation = self.get_orientation();
-        let distance = ((tick_left+tick_right) as f32/(2.0*1024.0))
+        let distance = ((tick_left + tick_right) as f32 / (2.0 * 1024.0))
             * self.coder_radius.as_millimeters() as f32;
 
         //let (sin,cos) = orientation.sin_cos();
@@ -267,8 +266,8 @@ where
     }
 
     /// Renvoie la valeur en ticks de la distance parcourue par les roues codeuses
-    pub (crate) fn get_qei_count(&mut self) -> (i64,i64) {
-        (self.left_qei.count(),self.right_qei.count())
+    pub(crate) fn get_qei_count(&mut self) -> (i64, i64) {
+        (self.left_qei.count(), self.right_qei.count())
     }
 
     pub(crate) fn reset_origin(&mut self) {

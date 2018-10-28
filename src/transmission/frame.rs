@@ -58,7 +58,7 @@ use transmission::Message;
 /// ```
 /// # #[macro_use]
 /// # extern crate librobot;
-/// # use librobot::frame::*;
+/// # use librobot::transmission::*;
 /// # fn main() {
 /// let t = frame!(0xFF,[0x55,0x66]);
 /// let arr: arrayvec::ArrayVec<[u8; 256]> = t.into();
@@ -96,8 +96,7 @@ impl PartialEq for Frame {
 /// ```
 /// # #[macro_use]
 /// # extern crate librobot;
-/// # use librobot::frame::*;
-/// # use librobot::frame::Frame;
+/// # use librobot::transmission::*;
 /// # fn main() {
 /// // Une trame avec seulement un ID.
 /// let t1 = frame!(0xAA);
@@ -151,7 +150,7 @@ impl Frame {
     /// Création d'une [Frame] :
     ///
     /// ```
-    ///  # use librobot::frame::Frame;
+    ///  # use librobot::transmission::*;
     ///  let t1 = Frame::new(0x80, arrayvec::ArrayVec::<[u8; 256]>::new());
     ///  let t2 = Frame{ id: 0x80,
     ///                  data : arrayvec::ArrayVec::<[u8; 256]>::new()};
@@ -203,7 +202,7 @@ impl Into<Message> for Frame {
 
 #[cfg(test)]
 mod test {
-    use frame::*;
+    use transmission::*;
 
     #[test]
     fn frame_macro() {

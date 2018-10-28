@@ -1,6 +1,6 @@
 //! Une machine à état finis permettant de lire des [Frames](struct.Frame.html) depuis un flux d'octet.
 
-use frame::Frame;
+use transmission::Frame;
 
 use arrayvec::ArrayVec;
 use transmission::{Message, FRAME_MAX_SIZE};
@@ -126,7 +126,7 @@ impl FrameStateMachine {
 
     /// Fais avancer la machine à état d'un octet.
     pub fn step(self, byte: u8) -> (Self, Option<Frame>) {
-        use frame_reader::FrameReaderState::*;
+        use transmission::FrameReaderState::*;
         let mut result = None;
         (
             FrameStateMachine {
@@ -229,8 +229,7 @@ impl FrameStateMachine {
 #[cfg(test)]
 mod test {
 
-    use frame::*;
-    use frame_reader::*;
+    use transmission::*;
 
     #[test]
     fn frame_reader_buffer() {
