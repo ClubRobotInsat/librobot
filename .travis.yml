@@ -23,7 +23,7 @@ matrix:
         fast_finish: true
 cache : cargo
 after_success:
-        - cargo test;
+        - cargo test
 env : RUSTFLAGS="$RUSTFLAGS -D warnings"
 before_deploy:
         - rustup install nightly
