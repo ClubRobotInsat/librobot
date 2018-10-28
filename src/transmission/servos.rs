@@ -2,7 +2,7 @@
 //! Un `Servo` peut être créé à partir de la représentation C d'un servo-moteur fournie sous forme d'octet.
 
 use arrayvec::ArrayVec;
-use transmission::ffi::{get_size_servo_frame, CSharedServos2019, ErrorParsing, FrameParsingTrait};
+use transmission::ffi::{get_size_servo_frame, CSharedServos, ErrorParsing, FrameParsingTrait};
 use transmission::Message;
 
 /// Représentation d'un unique servo-moteur
@@ -102,7 +102,7 @@ impl Default for Color {
 impl ServoGroup {
     /// Crée un nouveau groupe de servomoteur à partir d'un message.
     pub fn new(from_data: Message) -> Result<Self, ErrorParsing> {
-        let read_servos: Result<CSharedServos2019, ErrorParsing> =
+        let read_servos: Result<CSharedServos, ErrorParsing> =
             FrameParsingTrait::read_frame(from_data);
         match read_servos {
             Ok(s) => Ok(s.into()),
@@ -120,15 +120,15 @@ impl ServoGroup {
 
     /// Renvoie un résultat contenant soit les octets correspondant à un message, soit une erreur
     pub fn into_bytes(self) -> Result<Message, ErrorParsing> {
-        let ser: CSharedServos2019 = self.into();
+        let ser: CSharedServos = self.into();
         ser.write_frame()
     }
 }
 
-impl Into<CSharedServos2019> for ServoGroup {
-    fn into(self) -> CSharedServos2019 {
+impl Into<CSharedServos> for ServoGroup {
+    fn into(self) -> CSharedServos {
         use transmission::ffi::*;
-        let mut array = [CServo2019::default(); 8];
+        let mut array = [CServo::default(); 8];
         let len = self.servos.len() as u8;
 
         for (i, servo) in self.servos.iter().enumerate() {
@@ -136,7 +136,7 @@ impl Into<CSharedServos2019> for ServoGroup {
                 Control::Speed(val) => (val, 1),
                 Control::Position(val) => (val, 0),
             };
-            array[i] = CServo2019 {
+            array[i] = CServo {
                 id: servo.id,
                 position: servo.known_position as libc::uint16_t,
                 command: cmd as libc::uint16_t,
@@ -147,7 +147,7 @@ impl Into<CSharedServos2019> for ServoGroup {
             }
         }
 
-        CSharedServos2019 {
+        CSharedServos {
             servos: array,
             nb_servos: len,
             parsing_failed: 0,
@@ -155,7 +155,7 @@ impl Into<CSharedServos2019> for ServoGroup {
     }
 }
 
-impl Into<ServoGroup> for CSharedServos2019 {
+impl Into<ServoGroup> for CSharedServos {
     fn into(self) -> ServoGroup {
         let mut array: ArrayVec<[Servo; 8]> = ArrayVec::<[Servo; 8]>::new();
 

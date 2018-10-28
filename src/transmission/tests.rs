@@ -8,7 +8,7 @@ use transmission::servos::*;
 
 #[test]
 fn test_servos() {
-    let servo_empty = CServo2019 {
+    let servo_empty = CServo {
         id: 0,
         position: 0,
         command: 0,
@@ -19,7 +19,7 @@ fn test_servos() {
     };
     assert_eq!(
         servo_empty,
-        CServo2019 {
+        CServo {
             id: 0,
             position: 1,
             command: 2,
@@ -29,7 +29,7 @@ fn test_servos() {
             color: 6,
         }
     );
-    let servo1 = CServo2019 {
+    let servo1 = CServo {
         id: 1,
         position: 512,
         command: 162,
@@ -39,7 +39,7 @@ fn test_servos() {
         color: 5,
     };
     assert_eq!(servo1, servo1);
-    let servo3 = CServo2019 {
+    let servo3 = CServo {
         id: 3,
         position: 1000,
         command: 10,
@@ -54,7 +54,7 @@ fn test_servos() {
     array[0] = servo1;
     array[1] = servo3;
 
-    let struct_before = CSharedServos2019 {
+    let struct_before = CSharedServos {
         servos: array,
         parsing_failed: 0,
         nb_servos: 2,
@@ -63,7 +63,7 @@ fn test_servos() {
     let written_frame = struct_before.write_frame();
     assert!(written_frame.is_ok());
     let read_frame =
-        CSharedServos2019::read_frame(written_frame.unwrap_or(ArrayVec::<[u8; 256]>::new()));
+        CSharedServos::read_frame(written_frame.unwrap_or(ArrayVec::<[u8; 256]>::new()));
     assert!(read_frame.is_ok());
     let struct_after = read_frame.unwrap_or(struct_before);
     // Les éléments ne sont pas dans le même ordre mais les structures sont équivalentes

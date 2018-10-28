@@ -46,7 +46,7 @@ pub trait TypeInfo {
 /// Représentation structurelle d'un unique servo-moteur
 #[repr(C)]
 #[derive(Debug, Default, Copy, Clone)]
-pub struct CServo2019 {
+pub struct CServo {
     /// Identifiant du servo-moteur. L'ID 0 est réservé pour spécifier l'abscence de servo-moteur.
     pub id: libc::uint8_t,
     /// Position actuelle du servo-moteur.
@@ -66,10 +66,10 @@ pub struct CServo2019 {
 /// Module complet de la gestion des servos-moteur
 #[repr(C)]
 #[derive(PartialEq, Debug, Copy, Clone)]
-pub struct CSharedServos2019 {
+pub struct CSharedServos {
     /// Ensemble des servos-moteurs.
     /// Il faut aussi modifier le code C pour avoir plus que 8 servos-moteur.
-    pub servos: [CServo2019; 8],
+    pub servos: [CServo; 8],
 
     /// Le nombre de servos lus dans un message
     pub nb_servos: u8,
@@ -79,8 +79,8 @@ pub struct CSharedServos2019 {
 }
 
 /// Relation d'équivalence partielle pour le module `CServo2019`, utile pour le débug.
-impl PartialEq for CServo2019 {
-    fn eq(&self, other: &CServo2019) -> bool {
+impl PartialEq for CServo {
+    fn eq(&self, other: &CServo) -> bool {
         self.id == other.id
             && (self.id == 0
                 || (self.position == other.position
@@ -93,10 +93,10 @@ impl PartialEq for CServo2019 {
 }
 
 /// Relation d'équivalence pour le module `CServo2019` utile pour le débug (généré depuis PartialEq)
-impl Eq for CSharedServos2019 {}
+impl Eq for CSharedServos {}
 
 /// Association d'un nom pour l'affichage dans le débug.
-impl TypeInfo for CSharedServos2019 {
+impl TypeInfo for CSharedServos {
     fn type_of(&self) -> &'static str {
         "CServos2019"
     }
@@ -192,11 +192,11 @@ impl TypeInfo for CSharedMotors2019 {
 #[link(name = "SharedWithRust")]
 extern "C" {
     /// Parsing du module des servos-moteur
-    fn servo_read_frame(message: *const libc::uint8_t, size: libc::uint8_t) -> CSharedServos2019;
+    fn servo_read_frame(message: *const libc::uint8_t, size: libc::uint8_t) -> CSharedServos;
     fn servo_write_frame(
         buf: *mut libc::uint8_t,
         buf_size: libc::uint8_t,
-        obj: *const CSharedServos2019,
+        obj: *const CSharedServos,
     ) -> libc::uint8_t;
     pub(crate) fn get_size_servo_frame(nb_servos: libc::uint8_t) -> libc::uint8_t;
 
@@ -290,8 +290,8 @@ pub trait FrameParsingTrait {
     fn read_is_ok(&self) -> bool;
 }
 
-impl FrameParsingTrait for CSharedServos2019 {
-    fn read_frame(msg: Message) -> Result<CSharedServos2019, ErrorParsing> {
+impl FrameParsingTrait for CSharedServos {
+    fn read_frame(msg: Message) -> Result<CSharedServos, ErrorParsing> {
         generic_read_frame(msg, servo_read_frame)
     }
 
@@ -343,7 +343,7 @@ mod tests {
         for b in data.into_iter() {
             bytes.push(*b);
         }
-        let test = CSharedServos2019::read_frame(bytes);
+        let test = CSharedServos::read_frame(bytes);
     }
 
     #[test]
@@ -371,6 +371,6 @@ mod tests {
         for b in data.into_iter() {
             bytes.push(*b);
         }
-        let test = CSharedServos2019::read_frame(bytes);
+        let test = CSharedServos::read_frame(bytes);
     }
 }
