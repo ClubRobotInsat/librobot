@@ -16,6 +16,11 @@ SharedServos2019 servo_read_frame(const uint8_t* message, buffer_size_t size) {
 	uint8_t count = 0;
 	uint8_t nb_servo = message[count++];
 
+	if(nb_servo > MAX_SERVOS) {
+		s.parsing_failed = 1;
+		return s;
+	}
+
 	if(size != get_size_servo_frame(nb_servo)) {
 		s.parsing_failed = 1;
 		return s;
@@ -131,6 +136,13 @@ SharedMotors2019 motor_read_frame(const uint8_t* message, buffer_size_t size) {
 	uint8_t nb_controlled = message[count++];
 	uint8_t nb_uncontrolled = message[count++];
 	uint8_t nb_brushless = message[count++];
+
+	if(nb_controlled > MAX_CONTROLLED_MOTORS     ||
+	   nb_uncontrolled > MAX_UNCONTROLLED_MOTORS ||
+	   nb_brushless > MAX_BRUSHLESS) {
+		s.parsing_failed = 1;
+		return s;
+	}
 
 	if(size != get_size_motor_frame(nb_controlled, nb_uncontrolled, nb_brushless)) {
 		s.parsing_failed = 1;
