@@ -1,5 +1,6 @@
 [![Travis](https://img.shields.io/travis/ClubRobotInsat/librobot.svg)](https://travis-ci.org/ClubRobotInsat/librobot)
 [![Documentation](https://img.shields.io/badge/Documentation-Available-blue.svg)](https://clubrobotinsat.github.io/librobot/)
+[![dependency status](https://deps.rs/repo/github/ClubRobotInsat/librobot/status.svg)](https://deps.rs/repo/github/ClubRobotInsat/librobot)
 
 # Librairie
 
