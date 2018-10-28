@@ -6,7 +6,7 @@ use transmission::ffi::{get_size_servo_frame, CSharedServos2019, ErrorParsing, F
 use transmission::Message;
 
 /// Représentation d'un unique servo-moteur
-#[derive(Debug, Copy, Clone, Eq)]
+#[derive(Debug, Default, Copy, Clone, Eq)]
 pub struct Servo {
     /// Identifiant du servo-moteur.
     pub id: u8,
@@ -51,6 +51,12 @@ pub enum BlockingMode {
     HoldOnblock = 1,
 }
 
+impl Default for BlockingMode {
+    fn default() -> Self {
+        BlockingMode::Unblocking
+    }
+}
+
 /// Commande du servo-moteur.
 #[derive(Debug, PartialEq, Copy, Clone, Eq)]
 pub enum Control {
@@ -60,25 +66,37 @@ pub enum Control {
     Position(u16),
 }
 
+impl Default for Control {
+    fn default() -> Self {
+        Control::Position(512)
+    }
+}
+
 /// Couleur émise par le servo-moteur.
 #[derive(Debug, PartialEq, Copy, Clone, Eq)]
 pub enum Color {
     /// Couleur noire
-    BLACK = 0x00,
+    Black = 0x00,
     /// Couleur rouge
-    RED = 0x01,
+    Red = 0x01,
     /// Couleur verte
-    GREEN = 0x02,
+    Green = 0x02,
     /// Couleur jaune
-    YELLOW = 0x03,
+    Yellow = 0x03,
     /// Couleur bleue
-    BLUE = 0x04,
+    Blue = 0x04,
     /// Couleur magenta
-    MAGENTA = 0x05,
+    Magenta = 0x05,
     /// Couleur cyan
-    CYAN = 0x06,
+    Cyan = 0x06,
     /// Couleur blanche
-    WHITE = 0x07,
+    White = 0x07,
+}
+
+impl Default for Color {
+    fn default() -> Self {
+        Color::Green
+    }
 }
 
 impl ServoGroup {
@@ -97,6 +115,42 @@ impl ServoGroup {
         #[allow(unsafe_code)]
         unsafe {
             get_size_servo_frame(nb_servos)
+        }
+    }
+
+    /// Renvoie un résultat contenant soit les octets correspondant à un message, soit une erreur
+    pub fn into_bytes(self) -> Result<Message, ErrorParsing> {
+        let ser: CSharedServos2019 = self.into();
+        ser.write_frame()
+    }
+}
+
+impl Into<CSharedServos2019> for ServoGroup {
+    fn into(self) -> CSharedServos2019 {
+        use transmission::ffi::*;
+        let mut array = [CServo2019::default(); 8];
+        let len = self.servos.len() as u8;
+
+        for (i, servo) in self.servos.iter().enumerate() {
+            let (cmd, cmd_type) = match servo.control {
+                Control::Speed(val) => (val, 1),
+                Control::Position(val) => (val, 0),
+            };
+            array[i] = CServo2019 {
+                id: servo.id,
+                position: servo.known_position as libc::uint16_t,
+                command: cmd as libc::uint16_t,
+                command_type: cmd_type as libc::uint8_t,
+                blocked: servo.blocked as libc::c_char,
+                blocking_mode: servo.mode as libc::uint8_t,
+                color: servo.color as libc::uint8_t,
+            }
+        }
+
+        CSharedServos2019 {
+            servos: array,
+            nb_servos: len,
+            parsing_failed: 0,
         }
     }
 }
@@ -122,14 +176,14 @@ impl Into<ServoGroup> for CSharedServos2019 {
                     _ => unreachable!(),
                 },
                 color: match servo.color {
-                    x if x == Color::BLACK as u8 => Color::BLACK,
-                    x if x == Color::RED as u8 => Color::RED,
-                    x if x == Color::GREEN as u8 => Color::GREEN,
-                    x if x == Color::YELLOW as u8 => Color::YELLOW,
-                    x if x == Color::BLUE as u8 => Color::BLUE,
-                    x if x == Color::MAGENTA as u8 => Color::MAGENTA,
-                    x if x == Color::CYAN as u8 => Color::CYAN,
-                    x if x == Color::WHITE as u8 => Color::WHITE,
+                    x if x == Color::Black as u8 => Color::Black,
+                    x if x == Color::Red as u8 => Color::Red,
+                    x if x == Color::Green as u8 => Color::Green,
+                    x if x == Color::Yellow as u8 => Color::Yellow,
+                    x if x == Color::Blue as u8 => Color::Blue,
+                    x if x == Color::Magenta as u8 => Color::Magenta,
+                    x if x == Color::Cyan as u8 => Color::Cyan,
+                    x if x == Color::White as u8 => Color::White,
                     _ => unreachable!(), // réception de 3 bits seulement, soit 7 au maximum
                 },
             });

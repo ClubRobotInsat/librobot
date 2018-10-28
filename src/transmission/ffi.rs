@@ -45,7 +45,7 @@ pub trait TypeInfo {
 
 /// Représentation structurelle d'un unique servo-moteur
 #[repr(C)]
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct CServo2019 {
     /// Identifiant du servo-moteur. L'ID 0 est réservé pour spécifier l'abscence de servo-moteur.
     pub id: libc::uint8_t,
