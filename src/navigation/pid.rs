@@ -100,11 +100,11 @@ where
     pub fn get_position(&mut self) -> Coord {
         let (tick_left, tick_right) = self.internal_pid.get_qei_count();
 
-        let orientation = self.get_orientation();
-        let distance = ((tick_left + tick_right) as f32 / (2.0 * 1024.0))
+        let _orientation = self.get_orientation();
+        let _distance = ((tick_left + tick_right) as f32 / (2.0 * 1024.0))
             * self.coder_radius.as_millimeters() as f32;
 
-        //let (sin,cos) = orientation.sin_cos();
+        //let (sin,cos) = f32::sin_cos(orientation);
         unimplemented!()
     }
 

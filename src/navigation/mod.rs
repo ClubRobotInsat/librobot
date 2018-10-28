@@ -38,10 +38,10 @@ pub struct Coord {
 impl Coord {
     /// Crées des coordonnées à partir d'un nombre de tick
     pub fn from_tick_count(
-        left: i64,
-        right: i64,
-        inter_axial: MilliMeter,
-        coder_radius: MilliMeter,
+        _left: i64,
+        _right: i64,
+        _inter_axial: MilliMeter,
+        _coder_radius: MilliMeter,
     ) -> Self {
         unimplemented!()
         /*
