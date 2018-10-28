@@ -4,6 +4,7 @@ sudo: required
 script:
   - sudo unlink /usr/bin/gcc && sudo ln -s /usr/bin/gcc-5 /usr/bin/gcc
   - gcc --version
+  - cargo test
 addons:
   apt:
     sources:
@@ -22,8 +23,6 @@ rust:
 matrix:
         fast_finish: true
 cache : cargo
-after_success:
-        - cargo test
 env : RUSTFLAGS="$RUSTFLAGS -D warnings"
 before_deploy:
         - rustup install nightly
