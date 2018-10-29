@@ -453,6 +453,14 @@ mod tests {
     #[test]
     fn servo_reversibility() {
         let mut tab = [Servo::default(); 8];
+        tab[0] = Servo {
+            id: 1,
+            known_position: 0,
+            control: Control::Position(0),
+            blocked: false,
+            mode: BlockingMode::HoldOnblock,
+            color: Color::Blue,
+        };
         tab[1] = Servo {
             id: 89,
             known_position: 25,
@@ -462,7 +470,7 @@ mod tests {
             color: Color::Black,
         };
         tab[2] = Servo {
-            id: 0,
+            id: 12,
             known_position: 1023,
             control: Control::Speed(80),
             blocked: true,
@@ -492,6 +500,22 @@ mod tests {
             blocked: true,
             mode: BlockingMode::HoldOnblock,
             color: Color::Magenta,
+        };
+        tab[6] = Servo {
+            id: 45,
+            known_position: 0,
+            control: Control::Position(512),
+            blocked: false,
+            mode: BlockingMode::Unblocking,
+            color: Color::Black,
+        };
+        tab[7] = Servo {
+            id: 128,
+            known_position: 512,
+            control: Control::Speed(0),
+            blocked: true,
+            mode: BlockingMode::HoldOnblock,
+            color: Color::White,
         };
         let mut vec: ArrayVec<[Servo; 8]> = ArrayVec::new();
         for elem in tab.into_iter() {
