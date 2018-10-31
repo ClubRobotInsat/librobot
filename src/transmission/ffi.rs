@@ -438,13 +438,11 @@ mod tests {
         let struct_after = read_frame.unwrap_or(struct_before);
         // Les éléments ne sont pas dans le même ordre mais les structures sont équivalentes
         for servo in &struct_before.servos {
-            assert!(
-                &struct_after
-                    .servos
-                    .iter()
-                    .find(|elem| *elem == servo)
-                    .is_some()
-            );
+            assert!(&struct_after
+                .servos
+                .iter()
+                .find(|elem| *elem == servo)
+                .is_some());
         }
 
         assert_eq!(ServoGroup::get_size_frame(5), 31);
@@ -494,7 +492,7 @@ mod tests {
             color: Color::Magenta,
         };
         let mut vec: ArrayVec<[Servo; 8]> = ArrayVec::new();
-        for elem in tab.into_iter() {
+        for elem in &tab[1..=5] {
             vec.push(*elem);
         }
         let servos = ServoGroup { servos: vec };
@@ -595,31 +593,25 @@ mod tests {
         let struct_after = read_frame.unwrap_or(struct_before);
 
         for motor in &struct_before.controlled_motors {
-            assert!(
-                &struct_after
-                    .controlled_motors
-                    .iter()
-                    .find(|elem| *elem == motor)
-                    .is_some()
-            );
+            assert!(&struct_after
+                .controlled_motors
+                .iter()
+                .find(|elem| *elem == motor)
+                .is_some());
         }
         for motor in &struct_before.uncontrolled_motors {
-            assert!(
-                &struct_after
-                    .uncontrolled_motors
-                    .iter()
-                    .find(|elem| *elem == motor)
-                    .is_some()
-            );
+            assert!(&struct_after
+                .uncontrolled_motors
+                .iter()
+                .find(|elem| *elem == motor)
+                .is_some());
         }
         for motor in &struct_before.brushless {
-            assert!(
-                &struct_after
-                    .brushless
-                    .iter()
-                    .find(|elem| *elem == motor)
-                    .is_some()
-            );
+            assert!(&struct_after
+                .brushless
+                .iter()
+                .find(|elem| *elem == motor)
+                .is_some());
         }
     }
 
