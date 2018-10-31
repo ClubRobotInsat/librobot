@@ -163,7 +163,7 @@ impl Into<ServoGroup> for CSharedServos {
             array.push(Servo {
                 id: servo.id,
                 /// Cette variable depuis l'informatique n'est pas intéressante
-                known_position: 0,
+                known_position: servo.position,
                 control: match servo.command_type {
                     0 => Control::Position(servo.command),
                     1 => Control::Speed(servo.command),
