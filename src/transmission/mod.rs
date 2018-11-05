@@ -47,6 +47,6 @@ pub use self::servos::*;
 mod tests;
 
 /// Taille maximale du message véhiculé par la trame
-pub const FRAME_MAX_SIZE: usize = frame_reader::FRAME_READER_INTERNAL_BUFFER_SIZE /* - 6*/;
+pub const FRAME_MAX_SIZE: usize = 256 /* - 6*/;
 /// Un message est un tableau de 256 octets.
 pub type Message = ArrayVec<[u8; FRAME_MAX_SIZE]>;

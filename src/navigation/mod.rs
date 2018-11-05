@@ -27,7 +27,7 @@ pub use self::pid::*;
 use units::MilliMeter;
 
 /// Les coordonnées x,y d'un point sur la table
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub struct Coord {
     /// La composante longeur (x)
     pub x: MilliMeter,

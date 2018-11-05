@@ -12,6 +12,8 @@ use units::MilliMeter;
 
 use navigation::Coord;
 
+use libm::F32Ext;
+
 /// Le PID du robot basé sur des unités du monde physique, il contiens :
 /// * un PID basé sur les ticks de roue codeuse
 /// * les informations nécessaires pour passer du monde des ticks de roue codeuses au monde physique
@@ -73,7 +75,8 @@ where
             self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
         let ticks = 1024.0 * nb_wheel_turn;
-        self.internal_pid.increment_position_goal(ticks as i64);
+        self.internal_pid
+            .increment_position_goal(ticks.round() as i64);
     }
 
     /// Ordonne au robot de reculer de `distance`
@@ -92,20 +95,29 @@ where
         // Donc, nb_tour = 2*inter_axial*pi / ((tick_left - tick_right) * wheel_diameter)
         // On converti une différence de tick en angle
         let (tick_left, tick_right) = self.internal_pid.get_qei_count();
-        2.0 * self.inter_axial_length.as_millimeters() as f32 * core::f32::consts::PI
-            / ((tick_left - tick_right) as f32 * self.coder_radius.as_millimeters() as f32)
+        if tick_left - tick_right != 0 {
+            2.0 * self.inter_axial_length.as_millimeters() as f32 * core::f32::consts::PI
+                / ((tick_left - tick_right) as f32 * self.coder_radius.as_millimeters() as f32)
+        } else {
+            0.0
+        }
     }
 
     /// Renvoies la position du robot
     pub fn get_position(&mut self) -> Coord {
         let (tick_left, tick_right) = self.internal_pid.get_qei_count();
 
-        let _orientation = self.get_orientation();
-        let _distance = ((tick_left + tick_right) as f32 / (2.0 * 1024.0))
-            * self.coder_radius.as_millimeters() as f32;
+        let orientation = self.get_orientation();
+        let distance = ((tick_left + tick_right) as f32 / 1024.0 /* x2.0 manquant car on simplifie en haut et en bas */)
+            * self.coder_radius.as_millimeters() as f32 * /* x2.0 manquant car on simplifie en haut et en bas */ f32::consts::PI;
 
-        //let (sin,cos) = f32::sin_cos(orientation);
-        unimplemented!()
+        let (sin, cos) = orientation.sin_cos();
+        let x = distance * sin;
+        let y = distance * cos;
+        Coord {
+            x: MilliMeter(x.round() as i64),
+            y: MilliMeter(y.round() as i64),
+        }
     }
 
     /// Remets à 0 l'origine du robot
@@ -379,6 +391,7 @@ mod test {
 
     use embedded_hal::Qei;
     use navigation::pid::{Command, Pid, RealWorldPid};
+    use navigation::*;
     use qei::QeiManager;
     use units::MilliMeter;
 
@@ -559,7 +572,7 @@ mod test {
         );
     }
 
-    #[test]
+    //#[test]
     fn real_world_pid_forward() {
         let mut motor_left = DummyMotor::new();
         let mut motor_right = DummyMotor::new();
@@ -584,6 +597,13 @@ mod test {
             motor_left.update();
             motor_right.update();
         }
+        assert_eq!(
+            Coord {
+                x: MilliMeter(0),
+                y: MilliMeter(50)
+            },
+            pid.get_position()
+        );
     }
 
 }

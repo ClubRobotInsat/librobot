@@ -7,7 +7,7 @@ use transmission::{Message, FRAME_MAX_SIZE};
 
 /// La taille du buffer interne dans lesquels sont stockés les [Frame]s lues par tous les
 /// [FrameReader].
-pub const FRAME_READER_INTERNAL_BUFFER_SIZE: usize = 256;
+pub const FRAME_READER_INTERNAL_BUFFER_SIZE: usize = 10;
 
 #[derive(Debug, Clone)]
 pub(crate) enum FrameReaderState {
