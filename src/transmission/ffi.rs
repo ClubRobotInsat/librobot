@@ -19,23 +19,23 @@
 //! Les structures représentatives de chaque module sont définies en C et en Rust.
 //! Leur définition doivent être identiques à celles en C pour avoir accès aux fonctions de parsing.
 //! Pour communiquer entre Rust et C, il faut utiliser la FFI de Rust
-//! et utiliser le crate [libc](https://docs.rs/libc/0.2.43/libc/index.html).
+//! et utiliser la crate [cty](https://docs.rs/cty/).
 //! De plus, il est nécessaire d'avoir la même représentation mémoire des structures
 //! avec la représentation [repr(C)](https://doc.rust-lang.org/nomicon/other-reprs.html).
 
-extern crate libc;
 use core::marker::Sized;
-use libc::uint8_t;
+use cty;
 
 use arrayvec::ArrayVec;
 
 use transmission::Message;
 
 /// Représente la signature de la fonction C que l'on appelle pour transformer la frame en octets.
-type WriteFunction<T> = unsafe extern "C" fn(*mut uint8_t, uint8_t, *const T) -> uint8_t;
+type WriteFunction<T> =
+    unsafe extern "C" fn(*mut cty::uint8_t, cty::uint8_t, *const T) -> cty::uint8_t;
 
 /// Représente la signature de la fonction C que l'on appelle pour transformer des octets en frame.
-type ReadFunction<T> = unsafe extern "C" fn(*const uint8_t, uint8_t) -> T;
+type ReadFunction<T> = unsafe extern "C" fn(*const cty::uint8_t, cty::uint8_t) -> T;
 
 /// Permets de récupérer le type des structures pour un joli affichage dans les fonctions de parsing
 pub trait TypeInfo {
@@ -48,19 +48,19 @@ pub trait TypeInfo {
 #[derive(Debug, Default, Copy, Clone)]
 pub struct CServo {
     /// Identifiant du servo-moteur. L'ID 0 est réservé pour spécifier l'abscence de servo-moteur.
-    pub id: libc::uint8_t,
+    pub id: cty::uint8_t,
     /// Position actuelle du servo-moteur.
-    pub position: libc::uint16_t,
+    pub position: cty::uint16_t,
     /// Ordre de position ou de vitesse donné par l'informatique.
-    pub command: libc::uint16_t,
+    pub command: cty::uint16_t,
     /// Si égal à 0, la commande est en position ; si égal à 1 il s'agit d'un ordre de vitesse.
-    pub command_type: libc::uint8_t,
+    pub command_type: cty::uint8_t,
     /// Si égal à 1, alors le servo-moteur est bloqué (il force).
-    pub blocked: libc::c_char,
+    pub blocked: cty::c_char,
     /// HOLD_ON_BLOCKING = 1, UNBLOCKING = 0
-    pub blocking_mode: libc::uint8_t,
+    pub blocking_mode: cty::uint8_t,
     /// Couleur affichée sur le servo-moteur.
-    pub color: libc::uint8_t,
+    pub color: cty::uint8_t,
 }
 
 /// Module complet de la gestion des servos-moteur
@@ -75,7 +75,7 @@ pub struct CSharedServos {
     pub nb_servos: u8,
 
     /// Flag pour savoir si le parsing de la trame s'est bien réalisé par le C. 0 : OK, 1 : NOK.
-    pub parsing_failed: libc::uint8_t,
+    pub parsing_failed: cty::uint8_t,
 }
 
 /// Relation d'équivalence partielle pour le module `CServo`, utile pour le débug.
@@ -108,36 +108,36 @@ impl TypeInfo for CSharedServos {
 #[derive(Debug, Copy, Clone)]
 pub struct CControlledMotor {
     /// Identifiant du moteur asservi. L'ID 0 est réservé pour spécifier l'abscence de moteur.
-    pub id: libc::uint8_t,
+    pub id: cty::uint8_t,
     /// Ordre angulaire donné par l'informatique.
-    pub wanted_angle_position: libc::uint8_t,
+    pub wanted_angle_position: cty::uint8_t,
     /// Ordre de nombre de tours donné par l'informatique.
-    pub wanted_nb_turns: libc::uint8_t,
+    pub wanted_nb_turns: cty::uint8_t,
     /// Si le flag vaut 1, l'électronique spécifie que la commande est terminée.
-    pub finished: libc::uint8_t,
+    pub finished: cty::uint8_t,
     /// Si le flag vaut 1, l'informatique spécifie qu'un nouvel ordre a été donné
     /// L'électronique doit oublier les anciens ordres.
-    pub new_command: libc::uint8_t,
+    pub new_command: cty::uint8_t,
 }
 /// Représentation structurelle d'un unique moteur non asservi
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CUncontrolledMotor {
     /// Identifiant du moteur non asservi. L'ID 0 est réservé pour spécifier l'abscence de moteur.
-    pub id: libc::uint8_t,
+    pub id: cty::uint8_t,
     /// Flag pour savoir si le moteur tourne ; 1 = ON, 0 = OFF.
-    pub on_off: libc::uint8_t,
+    pub on_off: cty::uint8_t,
     /// SCHEDULE = 0, TRIGONOMETRIC = 1
-    pub rotation: libc::uint8_t,
+    pub rotation: cty::uint8_t,
 }
 /// Représentation structurelle d'un unique brushless
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct CBrushless {
     /// Identifiant du brushless. L'ID 0 est réservé pour spécifier l'abscence de brushless.
-    pub id: libc::uint8_t,
+    pub id: cty::uint8_t,
     /// Flag pour savoir si le brushless tourne ; 1 = ON, 0 = OFF.
-    pub on_off: libc::uint8_t,
+    pub on_off: cty::uint8_t,
 }
 
 /// Module complet de la gestion des moteurs
@@ -151,7 +151,7 @@ pub struct CSharedMotors {
     /// Ensemble des brushless.
     pub brushless: [CBrushless; 8],
     /// Flag pour savoir si le parsing de la trame s'est bien réalisé par le C. 0 : OK, 1 : NOK.
-    pub parsing_failed: libc::uint8_t,
+    pub parsing_failed: cty::uint8_t,
 }
 
 /// Relation d'équivalence partielle pour le module `CControlledMotor`, utile pour le débug.
@@ -192,32 +192,32 @@ impl TypeInfo for CSharedMotors {
 #[link(name = "SharedWithRust")]
 extern "C" {
     /// Parsing du module des servos-moteur
-    fn servo_read_frame(message: *const libc::uint8_t, size: libc::uint8_t) -> CSharedServos;
+    fn servo_read_frame(message: *const cty::uint8_t, size: cty::uint8_t) -> CSharedServos;
     fn servo_write_frame(
-        buf: *mut libc::uint8_t,
-        buf_size: libc::uint8_t,
+        buf: *mut cty::uint8_t,
+        buf_size: cty::uint8_t,
         obj: *const CSharedServos,
-    ) -> libc::uint8_t;
-    pub(crate) fn get_size_servo_frame(nb_servos: libc::uint8_t) -> libc::uint8_t;
+    ) -> cty::uint8_t;
+    pub(crate) fn get_size_servo_frame(nb_servos: cty::uint8_t) -> cty::uint8_t;
 
     /// Parsing du module des moteurs
-    fn motor_read_frame(message: *const libc::uint8_t, size: libc::uint8_t) -> CSharedMotors;
+    fn motor_read_frame(message: *const cty::uint8_t, size: cty::uint8_t) -> CSharedMotors;
     fn motor_write_frame(
-        buf: *mut libc::uint8_t,
-        buf_size: libc::uint8_t,
+        buf: *mut cty::uint8_t,
+        buf_size: cty::uint8_t,
         obj: *const CSharedMotors,
-    ) -> libc::uint8_t;
+    ) -> cty::uint8_t;
     pub(crate) fn get_size_motor_frame(
-        nb_controlled: libc::uint8_t,
-        nb_uncontrolled: libc::uint8_t,
-        nb_brushless: libc::uint8_t,
-    ) -> libc::uint8_t;
+        nb_controlled: cty::uint8_t,
+        nb_uncontrolled: cty::uint8_t,
+        nb_brushless: cty::uint8_t,
+    ) -> cty::uint8_t;
 
 // TODO : récupérer les constantes partagées depuis le code C
-/*pub static NBR_SERVOS: libc::uint8_t;
-pub static NBR_CONTROLLED_MOTORS: libc::uint8_t;
-pub static NBR_UNCONTROLLED_MOTORS: libc::uint8_t;
-pub static NBR_BRUSHLESS: libc::uint8_t;*/
+/*pub static NBR_SERVOS: cty::uint8_t;
+pub static NBR_CONTROLLED_MOTORS: cty::uint8_t;
+pub static NBR_UNCONTROLLED_MOTORS: cty::uint8_t;
+pub static NBR_BRUSHLESS: cty::uint8_t;*/
 }
 
 /// Fonctions de parsing génériques
@@ -235,7 +235,7 @@ where
         buf[index] = *data;
     }
     #[allow(unsafe_code)]
-    let servo = unsafe { c_read_function((&buf).as_ptr(), message.len() as uint8_t) };
+    let servo = unsafe { c_read_function((&buf).as_ptr(), message.len() as cty::uint8_t) };
 
     if servo.read_is_ok() {
         Ok(servo)

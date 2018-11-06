@@ -138,12 +138,12 @@ impl Into<CSharedServos> for ServoGroup {
             };
             array[i] = CServo {
                 id: servo.id,
-                position: servo.known_position as libc::uint16_t,
-                command: cmd as libc::uint16_t,
-                command_type: cmd_type as libc::uint8_t,
-                blocked: servo.blocked as libc::c_char,
-                blocking_mode: servo.mode as libc::uint8_t,
-                color: servo.color as libc::uint8_t,
+                position: servo.known_position as cty::uint16_t,
+                command: cmd as cty::uint16_t,
+                command_type: cmd_type as cty::uint8_t,
+                blocked: servo.blocked as cty::c_char,
+                blocking_mode: servo.mode as cty::uint8_t,
+                color: servo.color as cty::uint8_t,
             }
         }
 
