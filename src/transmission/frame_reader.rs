@@ -96,23 +96,17 @@ impl FrameReader {
     /// # }
     /// ```
     ///
-    pub fn parse(self, buf: &[u8]) -> Self {
-        let mut result = self;
+    pub fn parse(&mut self, buf: &[u8]) {
         for byte in buf {
-            result = result.step(*byte);
+            self.step(*byte);
         }
-        result
     }
 
     /// Fais avancer la machine à état en fonction de l'octet lu suivant
-    pub fn step(mut self, byte: u8) -> Self {
-        let (state, opt_frame) = self.state.step(byte); // FIXME
+    pub fn step(&mut self, byte: u8) {
+        let opt_frame = self.state.step(byte);
         if let Some(frame) = opt_frame {
             self.buffer.push(frame);
-        }
-        FrameReader {
-            buffer: self.buffer,
-            state: state,
         }
     }
 }
@@ -125,12 +119,10 @@ impl FrameStateMachine {
     }
 
     /// Fais avancer la machine à état d'un octet.
-    pub fn step(self, byte: u8) -> (Self, Option<Frame>) {
+    pub fn step(&mut self, byte: u8) -> Option<Frame> {
         use transmission::FrameReaderState::*;
         let mut result = None;
-        (
-            FrameStateMachine {
-                state: match self.state {
+        self.state = match self.state {
                     H1 => {
                         if byte == 0xAC {
                             H2
@@ -198,14 +190,14 @@ impl FrameStateMachine {
                     Data {
                         data_length,
                         id,
-                        mut data,
+                        ref mut data,
                     } => {
                         if data.len() < (data_length - 1) as usize {
                             data.push(byte);
                             Data {
                                 data_length,
                                 id,
-                                data: data, //FIXME
+                                data: data.clone(),
                             }
                         } else if data.len() == (data_length - 1) as usize {
                             data.push(byte);
@@ -219,10 +211,8 @@ impl FrameStateMachine {
                     }
 
                     //_ => H1,
-                },
-            },
-            result,
-        )
+                };
+        result
     }
 }
 
@@ -244,14 +234,14 @@ mod test {
             // Trame bien formée
             let t1 = frame!(0xAA, [5, 6, 7, 8, 9, 10]);
             let bytes1: Message = t1.clone().into();
-            reader = reader.parse(&bytes1);
+            reader.parse(&bytes1);
             assert_eq!(reader.pop_frame().expect("I should have read a frame."), t1);
             assert_eq!(reader.get_buffer_size(), 0);
 
             // Message véhiculé vide
             let t2 = frame!(0xDF, []);
             let bytes2: Message = t2.clone().into();
-            reader = reader.parse(&bytes2);
+            reader.parse(&bytes2);
             assert_eq!(reader.pop_frame().unwrap(), t2);
             assert_eq!(reader.get_buffer_size(), 0);
 
@@ -259,13 +249,13 @@ mod test {
             let mut bytes3: Message = bytes1;
             // suppression de [8, 9, 10]
             bytes3.truncate(9);
-            reader = reader.parse(&bytes3);
+            reader.parse(&bytes3);
             assert_eq!(reader.get_buffer_size(), 0);
             bytes3.clear();
             bytes3.push(8);
             bytes3.push(9);
             bytes3.push(10);
-            reader = reader.parse(&bytes3);
+            reader.parse(&bytes3);
             assert_eq!(reader.pop_frame().expect("I should have read a frame."), t1);
             assert_eq!(reader.get_buffer_size(), 0);
         }
