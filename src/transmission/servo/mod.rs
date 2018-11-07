@@ -7,6 +7,7 @@ use transmission::Message;
 /// Représentation d'un unique servo-moteur
 #[derive(Debug, Default, Copy, Clone, Eq)]
 pub struct Servo {
+    // TODO : spécifier les histoires d'ID = 0
     /// Identifiant du servo-moteur.
     pub id: u8,
     /// Position actuelle du servo-moteur.

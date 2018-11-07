@@ -1,51 +1,3 @@
-//! Les trames sont le moyen de communication entre l'éléctronique et l'informatique. Un Frame
-//! contiens plusieurs champs :
-//! * Un identifiant `id`
-//! * Une commande `cmd`
-//! * Un numéro de paquet optionnel `pnum`
-//! * Des données `data` et un nombre de donnée `data_length`
-//!
-//! | Champs                                    | Valeur            |
-//! |-------------------------------------------|-------------------|
-//! | H1                                        | 0xAC              |
-//! | H2                                        | 0xDC              |
-//! | H3                                        | 0xAB              |
-//! | Type                                      | 0xAB - 0xBA       |
-//! | Taille Donnée sur 1 octet                 | ?                 |
-//! | Id sur 1 octet                            | ?                 |
-//! | Donnée                                    | [?,?,?,?,?,?,?,?] |
-//!
-//! # Exemple
-//!
-//! Voici un exemple de communication PC-Elec :
-//! ```c++
-//! +----------------+           +--------------------+
-//! |                |           |                    |
-//! |  Raspberry PI  |           |  Microcontrolleur  |
-//! |                |           |                    |
-//! +--------+-------+           +----------+---------+
-//!          |                              |
-//!          |  AC DC AB BA 01 05 06 00     |
-//!          | +--------------------------> |
-//!          |                              |
-//!          |  AC DC AB BB 01 00 00        |
-//!          | <--------------------------+ |
-//!          |                              |
-//!          |  AC DC AB BA 05 46 02 11 77  |
-//!          | <--------------------------+ |
-//!          |                              |
-//!          v(t)                           v(t)
-//! ```
-//!
-//! La première trame comporte un header `AC DC AB`, le type de trame (normal) `0xBA` puis le numéro de paquet `01`, un
-//! identifiant `05` une commande `06` et `00` données.
-//!
-//! Le microcontrolleur réponds alors avec une trame d'acquitement, son type est `BB` et il est
-//! suivi du numéro de paquet `01` et de deux octets nuls `00 00`.
-//!
-//! Enfin, après avoir traité la trame informatique, le microcontrolleur réponds à la commande `06`
-//! avec un message d'id `05`, de commande `46` et `02` données `11` et `77`.
-
 use transmission::Message;
 
 /// La structure de donnée qui est utilisée pour la communication en electronique.
@@ -178,10 +130,6 @@ impl Frame {
             Err(())
         }
     }
-}
-
-fn make_u16(high: u8, low: u8) -> u16 {
-    low as u16 + ((high as u16).wrapping_shr(8))
 }
 
 impl Into<Message> for Frame {
