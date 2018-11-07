@@ -88,8 +88,8 @@ impl PartialEq for Frame {
     }
 }
 
-/// Macro permettant de créer une nouvelle [frame::Frame] facilement. La gestion des données fait appel à
-/// [Frame::push][frame::Frame::push], donc si il y a plus de 8 données elles seront ignorées.
+/// Macro permettant de créer une nouvelle [Frame] facilement. La gestion des données fait appel à
+/// [Frame::push][Frame::push], donc si il y a plus de 8 données elles seront ignorées.
 ///
 /// # Exemple
 ///
