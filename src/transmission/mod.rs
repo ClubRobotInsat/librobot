@@ -37,7 +37,7 @@
 //! Voici comment lire des messages et renvoyer des informations vers l'informatique pour les
 //! servomoteurs.
 //!
-//! ```
+//! ```c++
 //!  +--------------------------+                  +---------------------+
 //! |                          |                  |                     |
 //! |       Conversion en      |                  | Conversion en Frame |
