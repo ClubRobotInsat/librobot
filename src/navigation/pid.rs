@@ -12,6 +12,7 @@ use units::MilliMeter;
 
 use navigation::Coord;
 
+#[allow(unused_imports)]
 use libm::F32Ext;
 
 /// Le PID du robot basé sur des unités du monde physique, il contiens :
