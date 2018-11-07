@@ -1,5 +1,4 @@
-//! Représentation haut-niveau d'un servo-moteur
-//! Un `Servo` peut être créé à partir de la représentation C d'un servo-moteur fournie sous forme d'octet.
+//! Représentation haut-niveau d'un servo-moteur.
 
 use arrayvec::ArrayVec;
 use transmission::ffi::{get_size_servo_frame, CSharedServos, ErrorParsing, FrameParsingTrait};

@@ -38,7 +38,7 @@ pub struct FrameReader {
 
 /// Machine à état de la désérialisation du flux d'octets.
 #[derive(Debug, Clone)]
-pub struct FrameStateMachine {
+struct FrameStateMachine {
     state: FrameReaderState,
 }
 
@@ -122,54 +122,54 @@ impl FrameStateMachine {
     pub fn step(&mut self, byte: u8) -> Option<Frame> {
         use transmission::FrameReaderState::*;
         let mut result = None;
-        self.state = match self.state {
+        let new_state = match self.state {
                     H1 => {
                         if byte == 0xAC {
-                            H2
+                            Some(H2)
                         } else {
-                            H1
+                            Some(H1)
                         }
                     }
                     H2 => {
                         if byte == 0xDC {
-                            H3
+                            Some(H3)
                         } else {
-                            H1
+                            Some(H1)
                         }
                     }
                     H3 => {
                         if byte == 0xAB {
-                            FrameType
+                            Some(FrameType)
                         } else {
-                            H1
+                            Some(H1)
                         }
                     }
 
                     FrameType => {
                         if byte == 0xBA {
-                            BeginFrame
+                            Some(BeginFrame)
                         } else {
-                            H1
+                            Some(H1)
                         }
                     }
 
                     BeginFrame => {
                         // Length == 0 ; l'ID n'est même pas communiqué donc rejet de la trame
                         if byte == 0 {
-                            H1
+                            Some(H1)
                         }
                         // Trop de données arrivent
                         else if byte as usize > FRAME_MAX_SIZE {
-                            H1
+                            Some(H1)
                         } else if byte as usize <= FRAME_MAX_SIZE {
-                            DataLength {
+                            Some(DataLength {
                                 // DataLength représente la taille des données utiles, sans compter l'ID
                                 data_length: byte - 1,
-                            }
+                            })
                         } else {
                             // normalement on n'arrive pas ici
                             //asm::bkpt();
-                            H1
+                            Some(H1)
                         }
                     }
 
@@ -177,13 +177,13 @@ impl FrameStateMachine {
                         if data_length == 0 {
                             // Le message véhiculé est vide
                             result = Some(Frame::new(byte, Message::new()));
-                            H1
+                            Some(H1)
                         } else {
-                            Data {
+                            Some(Data {
                                 data_length,
                                 id: byte,
                                 data: Message::new()
-                            }
+                            })
                         }
                     }
 
@@ -194,24 +194,21 @@ impl FrameStateMachine {
                     } => {
                         if data.len() < (data_length - 1) as usize {
                             data.push(byte);
-                            Data {
-                                data_length,
-                                id,
-                                data: data.clone(),
-                            }
+                            None
                         } else if data.len() == (data_length - 1) as usize {
                             data.push(byte);
                             result = Some(Frame::new(id, data.clone()));
-                            H1
+                            Some(H1)
                         } else {
-                            // Rejet de la trame trop longue mais normalement on n'arrive pas ici
-                            //asm::bkpt();
-                            H1
+                            Some(H1)
                         }
                     }
 
                     //_ => H1,
                 };
+        if let Some(new_state) = new_state {
+            self.state = new_state;
+        }
         result
     }
 }
@@ -231,7 +228,7 @@ mod test {
     fn frame_reader_standard_frame() {
         let mut reader = FrameReader::new();
         {
-            // Trame bien formée
+            // Trame bien formée+
             let t1 = frame!(0xAA, [5, 6, 7, 8, 9, 10]);
             let bytes1: Message = t1.clone().into();
             reader.parse(&bytes1);

@@ -321,10 +321,9 @@ impl FrameParsingTrait for CSharedMotors {
 #[cfg(test)]
 mod tests {
 
-    use transmission::ffi::*;
-    use transmission::*;
-
     use arrayvec::ArrayVec;
+    use transmission::ffi::*;
+    use transmission::servo::*;
 
     #[test]
     fn buffer_overflow_servo_frame() {

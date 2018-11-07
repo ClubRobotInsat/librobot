@@ -29,19 +29,16 @@
 //!          v(t)                           v(t)
 //! ```
 
-pub use transmission::servos::*;
-
 use arrayvec::ArrayVec;
 
 #[macro_use]
 mod frame;
 mod ffi;
 mod frame_reader;
-mod servos;
+pub mod servo;
 
 pub use self::frame::*;
 pub use self::frame_reader::*;
-pub use self::servos::*;
 
 #[cfg(test)]
 mod tests;
