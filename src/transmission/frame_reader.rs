@@ -69,13 +69,13 @@ impl FrameReader {
     // TODO : update comments
     /// Fais avancer la machine à état en lui donnant en entrée tous les octets dans le buffer
     /// `buf`.
-    /// ```ignore
+    /// ```
     /// # #[macro_use]
     /// # extern crate librobot;
-    /// # use librobot::frame::*;
-    /// # use librobot::frame_reader::*;
+    /// # use librobot::transmission::*;
+    /// # use librobot::transmission::*;
     /// # fn main() {
-    /// let mut reader = FrameStateMachine::new();
+    /// let mut reader = FrameReader::new();
     /// let frame : [u8;13] = [0xAC, // Header 1
     ///                        0xDC, // Header 2
     ///                        0xAB, // Header 3

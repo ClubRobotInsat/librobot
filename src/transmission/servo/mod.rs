@@ -117,7 +117,8 @@ impl ServoGroup {
         }
     }
 
-    /// Renvoie un résultat contenant soit les octets correspondant à un message, soit une erreur
+    /// Renvoie un résultat contenant soit les octets correspondant à un message à renvoyer à la
+    /// partie informatique, soit une erreur.
     pub fn into_bytes(self) -> Result<Message, ErrorParsing> {
         let ser: CSharedServos = self.into();
         ser.write_frame()
