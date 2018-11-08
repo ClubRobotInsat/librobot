@@ -91,7 +91,7 @@ impl PartialEq for CServo {
     }
 }
 
-/// Relation d'équivalence pour le module `CServo` utile pour le débug (généré depuis PartialEq)
+/// Relation d'équivalence pour le module `CServo` utile pour le débug (généré depuis `[PartialEq]`)
 impl Eq for CSharedServos {}
 
 /// Association d'un nom pour l'affichage dans le débug.
@@ -177,7 +177,7 @@ impl PartialEq for CBrushless {
         self.id == other.id && (self.id == 0 || (self.on_off == other.on_off))
     }
 }
-/// Relation d'équivalence pour le module `CMotor` utile pour le débug (généré depuis PartialEq)
+/// Relation d'équivalence pour le module `CMotor` utile pour le débug (généré depuis `[PartialEq]`)
 impl Eq for CSharedMotors {}
 
 /// Association d'un nom pour l'affichage dans le débug.
@@ -222,7 +222,7 @@ pub static NBR_BRUSHLESS: cty::uint8_t;*/
 /// Fonctions de parsing génériques
 /// Il faut `impl` chaque structure pour appeler ces fonctions lors du parsing
 fn generic_read_frame<T>(
-    message: Message,
+    message: &Message,
     c_read_function: ReadFunction<T>,
 ) -> Result<T, ErrorParsing>
 where
@@ -259,8 +259,8 @@ where
     } else {
         let mut result = ArrayVec::<[u8; 256]>::new();
 
-        for i in 0..size as usize {
-            result.push(buf[i]);
+        for item in buf.iter().take(size as usize) {
+            result.push(*item);
         }
 
         Ok(result)
@@ -333,7 +333,7 @@ impl FrameParsingTrait for CSharedServos {
     /// * L'ID d'un servo vaut 0, alors que cet ID est réservé pour annoncer l'absence de servo en C
     /// * Deux servos ont le même ID
     fn read_frame(msg: Message) -> Result<CSharedServos, ErrorParsing> {
-        generic_read_frame(msg, servo_read_frame)
+        generic_read_frame(&msg, servo_read_frame)
     }
 
     /// Le retour est un `errorParsing::BufferTooSmall` si le buffer fourni est mal constitué
@@ -350,7 +350,7 @@ impl FrameParsingTrait for CSharedServos {
 
 impl FrameParsingTrait for CSharedMotors {
     fn read_frame(msg: Message) -> Result<CSharedMotors, ErrorParsing> {
-        generic_read_frame(msg, motor_read_frame)
+        generic_read_frame(&msg, motor_read_frame)
     }
 
     fn write_frame(&self) -> Result<Message, ErrorParsing> {
@@ -565,8 +565,22 @@ mod tests {
         let servos = ServoGroup { servos: vec };
         let original = servos.clone();
         let bytes = servos.into_bytes().unwrap();
-        let new = ServoGroup::new(bytes).unwrap();
+        let new = ServoGroup::from_message(bytes).unwrap();
         assert_eq!(new, original);
+    }
+
+    #[test]
+    fn message_len() {
+        use std;
+        use transmission::FRAME_MAX_SIZE;
+
+        let message_size = std::mem::size_of::<Message>();
+        assert_eq!(FRAME_MAX_SIZE + 4 /*overhead of a vec*/, message_size);
+        assert!(
+            message_size <= 255 + 5,
+            format!(
+            "Message size is too big. It will be truncated when casted to u8 to be passed to FFI. Currently it's size is : {} ",message_size),
+        );
     }
 
     #[test]

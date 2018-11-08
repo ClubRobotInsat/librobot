@@ -31,6 +31,25 @@ where
     inter_axial_length: MilliMeter,
 }
 
+/// Les paramètres d'un PID
+#[derive(Debug, Default)]
+pub struct PIDParameters {
+    /// Le rayon d'une roue codeuse
+    pub coder_radius: MilliMeter,
+    /// La distance entre les roues codeuses
+    pub inter_axial_length: MilliMeter,
+    /// Le coefficient proportionnel sur la position
+    pub pos_kp: f32,
+    /// Le coefficient dérivé sur la position
+    pub pos_kd: f32,
+    /// Le coefficient proportionnel sur l'orientation
+    pub orient_kp: f32,
+    /// Le coefficient dérivée sur l'orientation
+    pub orient_kd: f32,
+    /// La valeur maximale en sortie
+    pub max_output: u16,
+}
+
 impl<L, R> RealWorldPid<L, R>
 where
     L: Qei<Count = u16>,
@@ -45,23 +64,19 @@ where
     /// * les valeurs physiques du robot :
     ///     * distance interaxe en mm
     ///     * rayon d'une roue codeuse en mm
-    pub fn new(
-        qei_left: QeiManager<L>,
-        qei_right: QeiManager<R>,
-        coder_radius: MilliMeter,
-        inter_axial_length: MilliMeter,
-        pos_kp: f32,
-        pos_kd: f32,
-        orient_kp: f32,
-        orient_kd: f32,
-        cap: u16,
-    ) -> Self {
+    pub fn new(qei_left: QeiManager<L>, qei_right: QeiManager<R>, params: &PIDParameters) -> Self {
         RealWorldPid {
             internal_pid: Pid::new(
-                pos_kp, pos_kd, orient_kp, orient_kd, cap, qei_left, qei_right,
+                params.pos_kp,
+                params.pos_kd,
+                params.orient_kp,
+                params.orient_kd,
+                params.max_output,
+                qei_left,
+                qei_right,
             ),
-            coder_radius,
-            inter_axial_length,
+            coder_radius: params.coder_radius,
+            inter_axial_length: params.inter_axial_length,
         }
     }
 
@@ -96,11 +111,11 @@ where
         // Donc, nb_tour = 2*inter_axial*pi / ((tick_left - tick_right) * wheel_diameter)
         // On converti une différence de tick en angle
         let (tick_left, tick_right) = self.internal_pid.get_qei_count();
-        if tick_left - tick_right != 0 {
+        if tick_left - tick_right == 0 {
+            0.0
+        } else {
             2.0 * self.inter_axial_length.as_millimeters() as f32 * core::f32::consts::PI
                 / ((tick_left - tick_right) as f32 * self.coder_radius.as_millimeters() as f32)
-        } else {
-            0.0
         }
     }
 
@@ -217,7 +232,7 @@ where
     orient_kp: f32,
     orient_kd: f32,
     // La valeur maximale de la commande en sortie
-    cap: u16,
+    max_output: u16,
     // La consigne de position du robot exprimée en nombre de tick de roue codeuse
     position_order: i64,
     // La consigne d'angle exprimée en différence de tick de chaque roue codeuse
@@ -259,7 +274,7 @@ where
         pos_kd: f32,
         orient_kp: f32,
         orient_kd: f32,
-        cap: u16,
+        max_output: u16,
         left_qei: QeiManager<L>,
         right_qei: QeiManager<R>,
     ) -> Self {
@@ -272,7 +287,7 @@ where
             pos_kd,
             orient_kp,
             orient_kd,
-            cap,
+            max_output,
             position_order: 0,
             orientation_order: 0,
         }
@@ -317,8 +332,7 @@ where
         let dist = (left_count + right_count) / 2;
         let speed = (left_speed + right_speed) / 2;
         let diff = self.position_order as i64 - dist;
-        let cmd = (diff as f32 * self.pos_kp) - self.pos_kd as f32 * speed as f32;
-        cmd
+        (diff as f32 * self.pos_kp) - self.pos_kd as f32 * speed as f32
     }
 
     /// Renvoie les nouvelles consignes à appliquer aux deux roues pour atteindre la commande en orientation
@@ -338,17 +352,15 @@ where
 
     fn truncate(&self, val: f32) -> Command {
         if val.is_sign_positive() {
-            if val > self.cap as f32 {
-                Command::Front(self.cap)
+            if val > f32::from(self.max_output) {
+                Command::Front(self.max_output)
             } else {
                 Command::Front(val as u16)
             }
+        } else if -val > f32::from(self.max_output) {
+            Command::Back(self.max_output)
         } else {
-            if -val > self.cap as f32 {
-                Command::Back(self.cap)
-            } else {
-                Command::Back((-val) as u16)
-            }
+            Command::Back((-val) as u16)
         }
     }
 
@@ -579,17 +591,16 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let qei_left = QeiManager::new(motor_left.clone());
         let qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = RealWorldPid::new(
-            qei_left,
-            qei_right,
-            MilliMeter(31),
-            MilliMeter(223),
-            1.0,
-            1.0,
-            1.0,
-            1.0,
-            800,
-        );
+        let params = PIDParameters {
+            coder_radius: MilliMeter(31),
+            inter_axial_length: MilliMeter(223),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 800,
+        };
+        let mut pid = RealWorldPid::new(qei_left, qei_right, &params);
         pid.forward(MilliMeter(50));
         for _ in 0..500 {
             let (cmdl, cmdr) = pid.update();

@@ -6,9 +6,10 @@ use arrayvec::ArrayVec;
 use transmission::{Message, FRAME_MAX_SIZE};
 
 /// La taille du buffer interne dans lesquels sont stockés les [Frame]s lues par tous les
-/// [FrameReader].
+/// [`FrameReader`].
 pub const FRAME_READER_INTERNAL_BUFFER_SIZE: usize = 10;
 
+#[allow(clippy::large_enum_variant)]
 #[derive(Debug, Clone)]
 pub(crate) enum FrameReaderState {
     H1,
@@ -28,12 +29,21 @@ pub(crate) enum FrameReaderState {
 
 /// Déserialise des [Frame] depuis un flux d'octet.
 ///
-/// Les trames lues sont stockés dans un buffer de taille [FRAME_READER_INTERNAL_BUFFER_SIZE].
+/// Les trames lues sont stockés dans un buffer de taille [`FRAME_READER_INTERNAL_BUFFER_SIZE`].
 ///
 #[derive(Debug, Clone)]
 pub struct FrameReader {
     state: FrameStateMachine,
     buffer: ArrayVec<[Frame; FRAME_READER_INTERNAL_BUFFER_SIZE]>,
+}
+
+impl Default for FrameReader {
+    fn default() -> FrameReader {
+        FrameReader {
+            state: FrameStateMachine::new(),
+            buffer: ArrayVec::new(),
+        }
+    }
 }
 
 /// Machine à état de la désérialisation du flux d'octets.
@@ -155,21 +165,14 @@ impl FrameStateMachine {
 
                     BeginFrame => {
                         // Length == 0 ; l'ID n'est même pas communiqué donc rejet de la trame
-                        if byte == 0 {
+                        // byte > FRAME_MAX_SIZE : frame trop grande
+                        if byte == 0 || byte as usize > FRAME_MAX_SIZE {
                             Some(H1)
-                        }
-                        // Trop de données arrivent
-                        else if byte as usize > FRAME_MAX_SIZE {
-                            Some(H1)
-                        } else if byte as usize <= FRAME_MAX_SIZE {
+                        } else {
                             Some(DataLength {
                                 // DataLength représente la taille des données utiles, sans compter l'ID
                                 data_length: byte - 1,
                             })
-                        } else {
-                            // normalement on n'arrive pas ici
-                            //asm::bkpt();
-                            Some(H1)
                         }
                     }
 
@@ -261,6 +264,12 @@ mod test {
     #[test]
     fn frame_reader_struct_size() {
         use std;
-        assert!(std::mem::size_of::<FrameReader>() < 4096, format!("FrameReader has a big size unsuitable for µ-controller. It is {} bytes.", std::mem::size_of::<FrameReader>()));
+        assert!(
+            std::mem::size_of::<FrameReader>() < 4096,
+            format!(
+                "FrameReader has a big size unsuitable for µ-controller. It is {} bytes.",
+                std::mem::size_of::<FrameReader>()
+            )
+        );
     }
 }
