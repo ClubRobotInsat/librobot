@@ -1,7 +1,7 @@
 #![no_std]
 #![warn(missing_docs)]
 #![deny(missing_debug_implementations)]
-#![deny(unsafe_code)]
+#![warn(unsafe_code)]
 #![allow(dead_code)]
 
 //! La librairie du club pour les µ-controlleurs arm.

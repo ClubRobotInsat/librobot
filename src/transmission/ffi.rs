@@ -29,6 +29,10 @@ use arrayvec::ArrayVec;
 
 use transmission::Message;
 
+/*extern {
+        static NBR_SERVOS : cty::uint8_t;
+}*/
+
 /// Représente la signature de la fonction C que l'on appelle pour transformer la frame en octets.
 type WriteFunction<T> =
     unsafe extern "C" fn(*mut cty::uint8_t, cty::uint8_t, *const T) -> cty::uint8_t;
@@ -695,5 +699,4 @@ mod tests {
                 .is_some());
         }
     }
-
 }
