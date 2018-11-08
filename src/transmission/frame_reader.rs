@@ -257,4 +257,10 @@ mod test {
             assert_eq!(reader.get_buffer_size(), 0);
         }
     }
+
+    #[test]
+    fn frame_reader_struct_size() {
+        use std;
+        assert!(std::mem::size_of::<FrameReader>() < 4096, format!("FrameReader has a big size unsuitable for µ-controller. It is {} bytes.", std::mem::size_of::<FrameReader>()));
+    }
 }
