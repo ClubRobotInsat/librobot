@@ -96,6 +96,7 @@ pub mod servo;
 
 pub use self::frame::*;
 pub use self::frame_reader::*;
+pub use self::ffi::ErrorParsing;
 
 /// Taille maximale du message véhiculé par la frame
 pub const FRAME_MAX_SIZE: usize = 256 /* - 6*/;
