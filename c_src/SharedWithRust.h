@@ -6,7 +6,8 @@
 #ifndef ROOT_SHAREDWITHRUST_H
 #define ROOT_SHAREDWITHRUST_H
 
-#include <stdint.h>
+//#include <stdint.h>
+#include <inttypes.h>
 
 #define MAX_SERVOS 8
 #define MAX_CONTROLLED_MOTORS 8
