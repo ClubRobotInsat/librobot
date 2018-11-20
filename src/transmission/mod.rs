@@ -118,3 +118,17 @@ impl Into<u8> for MessageKind {
         }
     }
 }
+
+impl MessageKind {
+    
+    /// Crée un `MessageKind` depuis un entier
+    pub fn from_u8(data : u8) -> Result<MessageKind,()> {
+        match data {
+            4 => Ok(MessageKind::Servo),
+            5 => Ok(MessageKind::Navigation),
+            _ => Err(())
+    
+        }
+    }
+}
+
