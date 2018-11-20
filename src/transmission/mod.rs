@@ -91,13 +91,29 @@ use arrayvec::ArrayVec;
 #[macro_use]
 mod frame;
 mod ffi;
-mod frame_reader;
 pub mod servo;
 
 pub use self::frame::*;
-pub use self::frame_reader::*;
 
 /// Taille maximale du message véhiculé par la frame
 pub const FRAME_MAX_SIZE: usize = 256 /* - 6*/;
 /// Un message est un tableau de 256 octets.
 pub type Message = ArrayVec<[u8; FRAME_MAX_SIZE]>;
+
+/// Le type de message
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub enum MessageKind {
+    /// Commande de servomoteur
+    Servo,
+    /// Commande de déplacement
+    Navigation
+}
+
+impl Into<u8> for MessageKind {
+    fn into(self) -> u8 {
+        match self {
+            MessageKind::Servo => 4,
+            MessageKind::Navigation => 5, // TODO : agree into
+        }
+    }
+}

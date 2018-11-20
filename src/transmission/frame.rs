@@ -1,4 +1,4 @@
-use transmission::Message;
+use transmission::{MessageKind,Message};
 
 /// La structure de donnée qui est utilisée pour la communication en electronique.
 /// Pour la création d'une trame il vaut mieux utiliser la macro [frame!][macro@frame].
@@ -12,31 +12,26 @@ use transmission::Message;
 /// # extern crate librobot;
 /// # use librobot::transmission::*;
 /// # fn main() {
-/// let t = frame!(0xFF,[0x55,0x66]);
+/// let t = frame!(MessageKind::Servo,[0x55,0x66]);
 /// let arr: arrayvec::ArrayVec<[u8; 256]> = t.into();
-/// assert_eq!(&[0xAC,
-///             0xDC,
-///             0xAB,
-///             0xBA,
-///             3,
-///             0xFF,
+/// assert_eq!(&[0x4,
 ///             0x55,
 ///             0x66],
-///             &arr[0..8])
+///             &arr[0..3])
 /// # }
 /// ```
 ///
-#[derive(Clone, Debug, Default, Eq)]
+#[derive(Clone, Debug, Eq)]
 pub struct Frame {
     /// L'identifiant d'une trame.
-    pub id: u8,
+    pub kind: MessageKind,
     /// Les données de la trame.
     pub data: Message,
 }
 
 impl PartialEq for Frame {
     fn eq(&self, rhs: &Frame) -> bool {
-        self.id == rhs.id && self.data == rhs.data
+        self.kind == rhs.kind && self.data == rhs.data
     }
 }
 
@@ -51,21 +46,21 @@ impl PartialEq for Frame {
 /// # use librobot::transmission::*;
 /// # fn main() {
 /// // Une trame avec seulement un ID.
-/// let t1 = frame!(0xAA);
+/// let t1 = frame!(MessageKind::Servo);
 ///
 /// // Une trame avec un ID, une commande et 8 données : [1,2,3,4,5,6,7,8].
 /// // Les données en trop sont ignorées !
-/// let t2 = frame!(0xAA, [1,2,3,4,5,6,7,8]);
+/// let t2 = frame!(MessageKind::Servo, [1,2,3,4,5,6,7,8]);
 ///
-/// assert_eq!(t1, Frame{id:0xAA,..Frame::default()});
+/// assert_eq!(t1, Frame{kind:MessageKind::Servo,data: Message::new()});
 ///
 /// let mut array = arrayvec::ArrayVec::<[u8; 256]>::new();
 /// for i in 1..9 {
 ///     array.push(i);
 /// }
-/// assert_eq!(t2, Frame{id:0xAA,
+/// assert_eq!(t2, Frame{kind:MessageKind::Servo,
 ///                      data: array,
-///                      ..Frame::default()});
+///                      });
 /// # }
 /// ```
 ///
@@ -75,15 +70,9 @@ impl PartialEq for Frame {
 ///
 #[macro_export]
 macro_rules! frame {
-    () => {
-        Frame::default()
+    ($kind:expr) => {
+        Frame::new($kind,Message::new())
     };
-
-    ($id:expr) => {{
-        let mut frame = Frame::default();
-        frame.id = $id;
-        frame
-    }};
 
     ($id:expr, $arr:expr) => {{
         let mut t = frame!($id);
@@ -103,8 +92,8 @@ impl Frame {
     ///
     /// ```
     ///  # use librobot::transmission::*;
-    ///  let t1 = Frame::new(0x80, arrayvec::ArrayVec::<[u8; 256]>::new());
-    ///  let t2 = Frame{ id: 0x80,
+    ///  let t1 = Frame::new(MessageKind::Servo, arrayvec::ArrayVec::<[u8; 256]>::new());
+    ///  let t2 = Frame{ kind: MessageKind::Servo,
     ///                  data : arrayvec::ArrayVec::<[u8; 256]>::new()};
     ///  assert_eq!(t1,t2);
     /// ```
@@ -113,11 +102,11 @@ impl Frame {
     ///
     /// Il vaut mieux utiliser la macro [frame!][macro@frame] pour construire des trames.
     ///
-    pub fn new(id: u8, data: Message) -> Frame {
-        let mut t: Frame = Default::default();
-        t.id = id;
-        t.data = data;
-        t
+    pub fn new(kind: MessageKind, data: Message) -> Frame {
+        Frame {
+            kind,
+            data
+        }
     }
 
     /// Rajoute un octet de donnée dans la trame.
@@ -135,12 +124,7 @@ impl Frame {
 impl Into<Message> for Frame {
     fn into(self) -> Message {
         let mut arr = Message::new();
-        arr.push(0xAC);
-        arr.push(0xDC);
-        arr.push(0xAB);
-        arr.push(0xBA);
-        arr.push(1 + self.data.len() as u8);
-        arr.push(self.id);
+        arr.push(self.kind.into());
         for byte in self.data.iter() {
             arr.push(*byte);
         }
@@ -151,10 +135,11 @@ impl Into<Message> for Frame {
 #[cfg(test)]
 mod test {
     use transmission::*;
+    use transmission::MessageKind;
 
     #[test]
     fn frame_macro() {
-        let t = frame!(0x1, [1, 2, 3]);
+        let t = frame!(MessageKind::Servo, [1, 2, 3]);
         let mut array = Message::new();
         array.push(1);
         array.push(2);
@@ -162,7 +147,7 @@ mod test {
         assert_eq!(
             t,
             Frame {
-                id: 0x01,
+                kind: MessageKind::Servo,
                 data: array,
             }
         );
@@ -171,15 +156,9 @@ mod test {
 
     #[test]
     fn frame_conversion() {
-        let t = frame!(0xFF, [0x55, 0x66, 0x1, 2, 3, 4, 5, 6]);
-        let bytes: Message = t.clone().into();
+        let t = frame!(MessageKind::Servo, [0x55, 0x66, 0x1, 2, 3, 4, 5, 6]);
         let mut expected_result = Message::new();
-        expected_result.push(0xAC);
-        expected_result.push(0xDC);
-        expected_result.push(0xAB);
-        expected_result.push(0xBA);
-        expected_result.push(9);
-        expected_result.push(0xFF);
+        expected_result.push(0x4);
         expected_result.push(0x55);
         expected_result.push(0x66);
         expected_result.push(0x1);
@@ -188,6 +167,8 @@ mod test {
         expected_result.push(4);
         expected_result.push(5);
         expected_result.push(6);
+
+        let bytes: Message = t.clone().into();
         assert_eq!(bytes, expected_result);
     }
 }
