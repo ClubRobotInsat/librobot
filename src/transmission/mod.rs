@@ -6,7 +6,7 @@
 //!
 //! Au niveau de la librairie vous ne voyez ni l'une, ni l'autre car on expose une structure encore
 //! Rust plus idiomatique.Par exemple, pour transmettre des servomoteurs l'informatique enverra des
-//! messages contenant des [servo::ServoGroup].
+//! messages contenant des [`servo::ServoGroup`].
 //!
 //! # Forme d'une Frame
 //!
@@ -93,6 +93,7 @@ mod frame;
 mod ffi;
 pub mod servo;
 
+pub use self::ffi::ErrorParsing;
 pub use self::frame::*;
 
 /// Taille maximale du message véhiculé par la frame

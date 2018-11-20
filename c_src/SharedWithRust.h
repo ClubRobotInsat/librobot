@@ -6,7 +6,8 @@
 #ifndef ROOT_SHAREDWITHRUST_H
 #define ROOT_SHAREDWITHRUST_H
 
-#include <stdint.h>
+//#include <stdint.h>
+#include <inttypes.h>
 
 #define MAX_SERVOS 8
 #define MAX_CONTROLLED_MOTORS 8
@@ -18,10 +19,10 @@
 extern "C" {
 #endif
 
-/*extern const uint8_t NBR_SERVOS = MAX_SERVOS;
-extern const uint8_t NBR_CONTROLLED_MOTOR = MAX_CONTROLLED_MOTORS;
-extern const uint8_t NBR_UNCONTROLLED_MOTOR = MAX_UNCONTROLLED_MOTORS;
-extern const uint8_t NBR_BRUSHLESS = MAX_BRUSHLESS;*/
+const uint8_t NBR_SERVOS = MAX_SERVOS;
+const uint8_t NBR_CONTROLLED_MOTOR = MAX_CONTROLLED_MOTORS;
+const uint8_t NBR_UNCONTROLLED_MOTOR = MAX_UNCONTROLLED_MOTORS;
+const uint8_t NBR_BRUSHLESS = MAX_BRUSHLESS;
 
 /// Structure commune de l'ensemble des servos
 typedef struct SharedServos2019 {

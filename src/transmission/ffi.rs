@@ -1,16 +1,15 @@
-//! L'électronique et l'informatique communiquent grâce à des trames
-//! et l'ensemble de l'état du robot est partagé dans chaque message
-//!
 //! Le robot possède des modules qui correspondent à un actionneur / capteur électronique
-//! dont l'état correspondent à des sous-trames. Ils sont référencés par un ID unique (< 16).
+//! qui sont référencés par un ID unique (< 16).
+//!
+//! L'électronique et l'informatique communiquent grâce à des trames
+//! et l'ensemble de l'état d'un module du robot est partagé dans un unique message
 //!
 //! Les trames sont composées ainsi :
-//! * un u16 pour connaître les modules présents (0x04 pour un module d'ID 3)
-//! * un u16 pour chaque module et qui correspond à la taille occupée par la sous-trame associée
-//! * la sous-trame de chaque sous-module
+//! * un u8 pour connaître la taille du module (ID compris)
+//! * un u8 pour connaître l'ID du module
+//! * la trame associée au module
 //!
-//! Chaque sous-module est représenté par une sous-trame spécifique
-//! dont le parsing se fait par un code en C
+//! La trame associée à un module lui est spécifique et son parsing se fait par un code en C
 //! Ce choix permets de définir un unique couple de fonctions {lecture, écriture} pour chaque module
 //! qui est utilisé à la fois en électronique et en informatique
 //!
@@ -29,6 +28,10 @@ use cty;
 use arrayvec::ArrayVec;
 
 use transmission::Message;
+
+/*extern {
+        static NBR_SERVOS : cty::uint8_t;
+}*/
 
 /// Représente la signature de la fonction C que l'on appelle pour transformer la frame en octets.
 type WriteFunction<T> =
@@ -92,7 +95,7 @@ impl PartialEq for CServo {
     }
 }
 
-/// Relation d'équivalence pour le module `CServo` utile pour le débug (généré depuis PartialEq)
+/// Relation d'équivalence pour le module `CServo` utile pour le débug (généré depuis `[PartialEq]`)
 impl Eq for CSharedServos {}
 
 /// Association d'un nom pour l'affichage dans le débug.
@@ -178,7 +181,7 @@ impl PartialEq for CBrushless {
         self.id == other.id && (self.id == 0 || (self.on_off == other.on_off))
     }
 }
-/// Relation d'équivalence pour le module `CMotor` utile pour le débug (généré depuis PartialEq)
+/// Relation d'équivalence pour le module `CMotor` utile pour le débug (généré depuis `[PartialEq]`)
 impl Eq for CSharedMotors {}
 
 /// Association d'un nom pour l'affichage dans le débug.
@@ -223,7 +226,7 @@ pub static NBR_BRUSHLESS: cty::uint8_t;*/
 /// Fonctions de parsing génériques
 /// Il faut `impl` chaque structure pour appeler ces fonctions lors du parsing
 fn generic_read_frame<T>(
-    message: Message,
+    message: &Message,
     c_read_function: ReadFunction<T>,
 ) -> Result<T, ErrorParsing>
 where
@@ -260,8 +263,8 @@ where
     } else {
         let mut result = ArrayVec::<[u8; 256]>::new();
 
-        for i in 0..size as usize {
-            result.push(buf[i]);
+        for item in buf.iter().take(size as usize) {
+            result.push(*item);
         }
 
         Ok(result)
@@ -269,11 +272,21 @@ where
 }
 
 /// Erreur levée lorsqu'un problème de parsing intervient en C
+/// Ce flag est levé lorsque la trame associée à un module en particulier est mal formée,
+/// et donc son émission peur être spécifique à chaque module.
 #[derive(Debug)]
 pub enum ErrorParsing {
-    /// La trame fournie en lecture est mal définie
+    /// En plus des erreurs spécifiques à chaque module,
+    /// ce type d'erreur est levé à la lecture d'une trame si :
+    /// * Le message lu est vide
+    /// * La taille de la trame annoncée ne correspond pas à sa taille théorique
     BadPadding,
     /// Le buffer fourni pour écrire une trame est trop petit
+    /// Ce type d'erreur est levé lors de l'écriture d'une trame si :
+    /// * Le buffer est vide ; cas évité par la fonction `generic_write_frame`
+    /// * La taille annoncée du buffer est de 0 ; cas évité par `generic_write_frame`
+    /// * L'objet à parser est une référence nulle ; cas évité par le langage Rust
+    /// * La taille du buffer est trop petite pour parser l'objet
     BufferTooSmall,
 }
 
@@ -290,15 +303,50 @@ pub trait FrameParsingTrait {
     fn read_is_ok(&self) -> bool;
 }
 
+/// Le message correspondant au module Servos est formaté comme suivant :
+/// ```txt
+/// <nb_servo: u8>
+/// < [ < id: u8 > < position: u16 > < command: u16 > < command_type, blocking data, color: u8 > ]...>
+/// ```
+///
+/// Par exemple, on considère le cas suivant :
+/// unique servo d'ID 5,
+/// actuellement à la position 0x6789
+/// contrôlé en vitesse (0b1)
+/// avec la commande 0xABCD
+/// dont le comportement est de ne pas bloquer (0b0)
+/// et qui doit afficher la couleur jaune (0x3)
+///
+/// La trame associée est donc la suivante :
+/// ```txt
+/// 0x01 -> 1 seul servo annoncé
+///
+/// 0x05 -> l'ID du servo est le 5
+/// 0x67 -> bits de poids fort de la position
+/// 0x89 -> bits de poids faible de la position
+/// 0xAB -> bits de poids fort de la commande
+/// 0xCD -> bits de poids faible de la commande
+/// 0b00010011 -> 0b000 pas utilisés | 0b1 contrôle en vitesse | 0b0 unblocking | 0b011 couleur
+/// ```
 impl FrameParsingTrait for CSharedServos {
+    /// Le retour est un `ErrorParsing::BadPadding` si le message fourni est mal constitué,
+    /// c'est à dire si le message rentre dans les erreurs générales du [BadPadding]
+    /// ou s'il fait partie des cas suivants, spécifiques au parsing de la trame Servos :
+    /// * Le nombre de servos est supérieur au nombre `MAX_SERVOS` (8)
+    /// * La taille du message ne correspond pas à `1 + 6 * |nb_servos|`
+    /// * L'ID d'un servo vaut 0, alors que cet ID est réservé pour annoncer l'absence de servo en C
+    /// * Deux servos ont le même ID
     fn read_frame(msg: Message) -> Result<CSharedServos, ErrorParsing> {
-        generic_read_frame(msg, servo_read_frame)
+        generic_read_frame(&msg, servo_read_frame)
     }
 
+    /// Le retour est un `errorParsing::BufferTooSmall` si le buffer fourni est mal constitué
+    /// et donc s'il entre dans les erreurs générales décrites dans la section [BufferTooSmall]
     fn write_frame(&self) -> Result<Message, ErrorParsing> {
         generic_write_frame(self, servo_write_frame)
     }
 
+    /// Retourne vrai si le parsing d'un message lu n'a retourné aucune erreur
     fn read_is_ok(&self) -> bool {
         self.parsing_failed == 0
     }
@@ -306,7 +354,7 @@ impl FrameParsingTrait for CSharedServos {
 
 impl FrameParsingTrait for CSharedMotors {
     fn read_frame(msg: Message) -> Result<CSharedMotors, ErrorParsing> {
-        generic_read_frame(msg, motor_read_frame)
+        generic_read_frame(&msg, motor_read_frame)
     }
 
     fn write_frame(&self) -> Result<Message, ErrorParsing> {
@@ -521,8 +569,22 @@ mod tests {
         let servos = ServoGroup { servos: vec };
         let original = servos.clone();
         let bytes = servos.into_bytes().unwrap();
-        let new = ServoGroup::new(bytes).unwrap();
+        let new = ServoGroup::from_message(bytes).unwrap();
         assert_eq!(new, original);
+    }
+
+    #[test]
+    fn message_len() {
+        use std;
+        use transmission::FRAME_MAX_SIZE;
+
+        let message_size = std::mem::size_of::<Message>();
+        assert_eq!(FRAME_MAX_SIZE + 4 /*overhead of a vec*/, message_size);
+        assert!(
+            message_size <= 255 + 5,
+            format!(
+            "Message size is too big. It will be truncated when casted to u8 to be passed to FFI. Currently it's size is : {} ",message_size),
+        );
     }
 
     #[test]
@@ -637,5 +699,4 @@ mod tests {
                 .is_some());
         }
     }
-
 }

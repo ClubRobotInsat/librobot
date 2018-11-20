@@ -101,7 +101,7 @@ impl Default for Color {
 
 impl ServoGroup {
     /// Crée un nouveau groupe de servomoteur à partir d'un message.
-    pub fn new(from_data: Message) -> Result<Self, ErrorParsing> {
+    pub fn from_message(from_data: Message) -> Result<Self, ErrorParsing> {
         let read_servos: Result<CSharedServos, ErrorParsing> =
             FrameParsingTrait::read_frame(from_data);
         match read_servos {
