@@ -146,6 +146,11 @@ where
     pub fn get_qei_ticks(&mut self) -> (i64, i64) {
         self.internal_pid.get_qei_ticks()
     }
+
+    /// Renvoie sous la forme (gauche,droite) le but du PID en terme de ticks de roue codeuse.
+    pub fn get_qei_goal(&mut self) -> (i64, i64) {
+        self.internal_pid.get_qei_goal()
+    }
 }
 
 /// Un moteur avec ses deux broches : vitesse et direction.
@@ -405,6 +410,11 @@ where
     /// (gauche, droite)
     pub fn get_qei_ticks(&self) -> (i64,i64) {
         (self.left_qei.count(), self.right_qei.count())
+    }
+
+    /// Renvoie le but du PID en ticks de roue codeuse sous la forme (gauche,droite).
+    pub fn get_qei_goal(&self) -> (i64,i64) {
+        (self.position_order+ self.orientation_order/2, self.position_order- self.orientation_order/2)
     }
 }
 
