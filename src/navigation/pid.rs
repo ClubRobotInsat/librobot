@@ -198,11 +198,11 @@ where
         match cmd {
             Command::Front(pwm) => {
                 self.pwm.set_duty(pwm);
-                self.dir.set_low();
+                self.dir.set_high();
             }
             Command::Back(pwm) => {
                 self.pwm.set_duty(pwm);
-                self.dir.set_high();
+                self.dir.set_low();
             }
         }
     }
