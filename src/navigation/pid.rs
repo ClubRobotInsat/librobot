@@ -140,6 +140,12 @@ where
     pub fn reset_origin(&mut self) {
         self.internal_pid.reset_origin()
     }
+
+    /// Renvoie les ticks comptés par les roues codeuses de manière brute, sans traitement.
+    /// La valeur retournée est sous la forme (gauche,droite).
+    pub fn get_qei_ticks(&mut self) -> (i64, i64) {
+        self.internal_pid.get_qei_ticks()
+    }
 }
 
 /// Un moteur avec ses deux broches : vitesse et direction.
@@ -393,6 +399,12 @@ where
         let right_cmd = position_cmd + orientation_cmd_right;
         // Truncate resul
         (self.truncate(left_cmd), self.truncate(right_cmd))
+    }
+
+    /// Renvoie les ticks comptés par les roues codeuses sous la forme
+    /// (gauche, droite)
+    pub fn get_qei_ticks(&self) -> (i64,i64) {
+        (self.left_qei.count(), self.right_qei.count())
     }
 }
 
