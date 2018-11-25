@@ -23,6 +23,16 @@ pub struct Servo {
     pub color: Color,
 }
 
+impl Servo {
+    pub fn from_json_slice(slice : &[u8]) -> Result<Self,()> {
+        let result = from_slice(slice);
+        match result {
+            Ok(t) => t,
+            Err(_) => Err(())
+        }
+    }
+}
+
 /// Un ensemble de au plus 8 servos-moteurs
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct ServoGroup {
