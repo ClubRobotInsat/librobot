@@ -366,6 +366,7 @@ impl FrameParsingTrait for CSharedMotors {
     }
 }
 
+/*
 #[cfg(test)]
 mod tests {
 
@@ -700,3 +701,4 @@ mod tests {
         }
     }
 }
+*/

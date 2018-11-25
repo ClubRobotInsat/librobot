@@ -3,7 +3,7 @@
 use arrayvec::ArrayVec;
 use transmission::ffi::{get_size_servo_frame, CSharedServos, ErrorParsing, FrameParsingTrait};
 use transmission::Message;
-use serde_json_core::de::from_slice;
+use serde_json_core::de::{Error,from_slice};
 
 /// Représentation d'un unique servo-moteur
 #[derive(Debug, Default, Copy, Clone, Eq, Deserialize, Serialize)]
@@ -24,12 +24,8 @@ pub struct Servo {
 }
 
 impl Servo {
-    pub fn from_json_slice(slice : &[u8]) -> Result<Self,()> {
-        let result = from_slice(slice);
-        match result {
-            Ok(t) => t,
-            Err(_) => Err(())
-        }
+    pub fn from_json_slice(slice : &[u8]) -> Result<Self,Error> {
+        from_slice(slice)
     }
 }
 
