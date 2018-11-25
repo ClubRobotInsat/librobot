@@ -408,13 +408,16 @@ where
 
     /// Renvoie les ticks comptés par les roues codeuses sous la forme
     /// (gauche, droite)
-    pub fn get_qei_ticks(&self) -> (i64,i64) {
+    pub fn get_qei_ticks(&self) -> (i64, i64) {
         (self.left_qei.count(), self.right_qei.count())
     }
 
     /// Renvoie le but du PID en ticks de roue codeuse sous la forme (gauche,droite).
-    pub fn get_qei_goal(&self) -> (i64,i64) {
-        (self.position_order+ self.orientation_order/2, self.position_order- self.orientation_order/2)
+    pub fn get_qei_goal(&self) -> (i64, i64) {
+        (
+            self.position_order + self.orientation_order / 2,
+            self.position_order - self.orientation_order / 2,
+        )
     }
 }
 

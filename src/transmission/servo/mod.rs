@@ -3,9 +3,10 @@
 use arrayvec::ArrayVec;
 use transmission::ffi::{get_size_servo_frame, CSharedServos, ErrorParsing, FrameParsingTrait};
 use transmission::Message;
+use serde_json_core::de::from_slice;
 
 /// Représentation d'un unique servo-moteur
-#[derive(Debug, Default, Copy, Clone, Eq)]
+#[derive(Debug, Default, Copy, Clone, Eq, Deserialize, Serialize)]
 pub struct Servo {
     // TODO : spécifier les histoires d'ID = 0
     /// Identifiant du servo-moteur.
@@ -23,10 +24,10 @@ pub struct Servo {
 }
 
 /// Un ensemble de au plus 8 servos-moteurs
-#[derive(PartialEq, Debug, Clone)]
+#[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct ServoGroup {
     /// Vecteur d'au plus 8 servos-moteurs
-    pub servos: ArrayVec<[Servo; 8]>,
+    pub servos: Servo,
 }
 
 /// Relation d'équivalence partielle pour le module `Servo2019`, utile pour le débug.
@@ -43,7 +44,7 @@ impl PartialEq for Servo {
 }
 
 /// Comportement du servo-moteur lorsqu'il est bloqué.
-#[derive(Debug, PartialEq, Copy, Clone, Eq)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq, Serialize, Deserialize)]
 pub enum BlockingMode {
     /// Le servo relâche la pression lorsqu'il est bloqué.
     Unblocking = 0,
@@ -58,7 +59,7 @@ impl Default for BlockingMode {
 }
 
 /// Commande du servo-moteur.
-#[derive(Debug, PartialEq, Copy, Clone, Eq)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq, Serialize, Deserialize)]
 pub enum Control {
     /// Commande en vitesse.
     Speed(u16),
@@ -73,7 +74,7 @@ impl Default for Control {
 }
 
 /// Couleur émise par le servo-moteur.
-#[derive(Debug, PartialEq, Copy, Clone, Eq)]
+#[derive(Debug, PartialEq, Copy, Clone, Eq, Serialize, Deserialize)]
 pub enum Color {
     /// Couleur noire
     Black = 0x00,
@@ -100,6 +101,15 @@ impl Default for Color {
 }
 
 impl ServoGroup {
+
+    pub fn from_json_slice(slice : &[u8]) -> Result<Self,()> {
+        let result = from_slice(slice);
+        match result {
+            Ok(t) => t,
+            Err(_) => Err(())
+        }
+    }
+    /*
     /// Crée un nouveau groupe de servomoteur à partir d'un message.
     pub fn from_message(from_data: Message) -> Result<Self, ErrorParsing> {
         let read_servos: Result<CSharedServos, ErrorParsing> =
@@ -108,7 +118,7 @@ impl ServoGroup {
             Ok(s) => Ok(s.into()),
             Err(e) => Err(e),
         }
-    }
+    }*/
 
     /// Retourne la taille du message théorique, associé au nombre de servos présents.
     pub fn get_size_frame(nb_servos: u8) -> u8 {
@@ -117,15 +127,17 @@ impl ServoGroup {
             get_size_servo_frame(nb_servos)
         }
     }
-
+    /*
     /// Renvoie un résultat contenant soit les octets correspondant à un message à renvoyer à la
     /// partie informatique, soit une erreur.
     pub fn into_bytes(self) -> Result<Message, ErrorParsing> {
         let ser: CSharedServos = self.into();
         ser.write_frame()
     }
+    */
 }
 
+/*
 impl Into<CSharedServos> for ServoGroup {
     fn into(self) -> CSharedServos {
         use transmission::ffi::*;
@@ -191,4 +203,6 @@ impl Into<ServoGroup> for CSharedServos {
         }
         ServoGroup { servos: array }
     }
+
 }
+*/

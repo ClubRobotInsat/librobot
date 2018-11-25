@@ -17,6 +17,10 @@ extern crate embedded_hal;
 extern crate libm;
 extern crate nb;
 extern crate qei;
+extern crate serde;
+#[macro_use]
+extern crate serde_derive;
+extern crate serde_json_core;
 
 pub use transmission::*;
 

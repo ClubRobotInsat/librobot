@@ -1,4 +1,4 @@
-use transmission::{MessageKind,Message};
+use transmission::{Message, MessageKind};
 
 /// La structure de donnée qui est utilisée pour la communication en electronique.
 /// Pour la création d'une trame il vaut mieux utiliser la macro [frame!][macro@frame].
@@ -71,7 +71,7 @@ impl PartialEq for Frame {
 #[macro_export]
 macro_rules! frame {
     ($kind:expr) => {
-        Frame::new($kind,Message::new())
+        Frame::new($kind, Message::new())
     };
 
     ($id:expr, $arr:expr) => {{
@@ -103,10 +103,7 @@ impl Frame {
     /// Il vaut mieux utiliser la macro [frame!][macro@frame] pour construire des trames.
     ///
     pub fn new(kind: MessageKind, data: Message) -> Frame {
-        Frame {
-            kind,
-            data
-        }
+        Frame { kind, data }
     }
 
     /// Rajoute un octet de donnée dans la trame.
@@ -134,8 +131,8 @@ impl Into<Message> for Frame {
 
 #[cfg(test)]
 mod test {
-    use transmission::*;
     use transmission::MessageKind;
+    use transmission::*;
 
     #[test]
     fn frame_macro() {
