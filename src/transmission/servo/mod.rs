@@ -1,9 +1,12 @@
 //! Représentation haut-niveau d'un servo-moteur.
 
 use arrayvec::ArrayVec;
+use heapless::{ArrayLength, String};
+use serde_json_core::de::{from_slice, Error as DError};
+use serde_json_core::ser::{to_string, Error as SError};
+
 use transmission::ffi::{get_size_servo_frame, CSharedServos, ErrorParsing, FrameParsingTrait};
 use transmission::Message;
-use serde_json_core::de::{Error,from_slice};
 
 /// Représentation d'un unique servo-moteur
 #[derive(Debug, Default, Copy, Clone, Eq, Deserialize, Serialize)]
@@ -15,6 +18,7 @@ pub struct Servo {
     pub known_position: u16,
     /// Commande du servo soit en angle soit en vitesse.
     pub control: Control,
+    pub data: u16,
     /// Retourne vrai si le servo-moteur est bloqué
     pub blocked: bool,
     /// Comportement du servo-moteur face à un blocage extérieur.
@@ -24,8 +28,15 @@ pub struct Servo {
 }
 
 impl Servo {
-    pub fn from_json_slice(slice : &[u8]) -> Result<Self,Error> {
+    pub fn from_json_slice(slice: &[u8]) -> Result<Self, DError> {
         from_slice(slice)
+    }
+
+    pub fn to_string<B>(&self) -> Result<String<B>, SError>
+    where
+        B: ArrayLength<u8>,
+    {
+        to_string(self)
     }
 }
 
@@ -68,14 +79,14 @@ impl Default for BlockingMode {
 #[derive(Debug, PartialEq, Copy, Clone, Eq, Serialize, Deserialize)]
 pub enum Control {
     /// Commande en vitesse.
-    Speed(u16),
+    Speed,
     /// Commande en position.
-    Position(u16),
+    Position,
 }
 
 impl Default for Control {
     fn default() -> Self {
-        Control::Position(512)
+        Control::Position
     }
 }
 
@@ -107,12 +118,11 @@ impl Default for Color {
 }
 
 impl ServoGroup {
-
-    pub fn from_json_slice(slice : &[u8]) -> Result<Self,()> {
+    pub fn from_json_slice(slice: &[u8]) -> Result<Self, ()> {
         let result = from_slice(slice);
         match result {
             Ok(t) => t,
-            Err(_) => Err(())
+            Err(_) => Err(()),
         }
     }
     /*
@@ -143,72 +153,29 @@ impl ServoGroup {
     */
 }
 
-/*
-impl Into<CSharedServos> for ServoGroup {
-    fn into(self) -> CSharedServos {
-        use transmission::ffi::*;
-        let mut array = [CServo::default(); 8];
-        let len = self.servos.len() as u8;
+#[cfg(test)]
+mod test {
+    use super::{BlockingMode, Color, Control, Servo};
+    use heapless::consts::U256;
+    use heapless::String;
+    type N = U256;
 
-        for (i, servo) in self.servos.iter().enumerate() {
-            let (cmd, cmd_type) = match servo.control {
-                Control::Speed(val) => (val, 1),
-                Control::Position(val) => (val, 0),
-            };
-            array[i] = CServo {
-                id: servo.id,
-                position: servo.known_position as cty::uint16_t,
-                command: cmd as cty::uint16_t,
-                command_type: cmd_type as cty::uint8_t,
-                blocked: servo.blocked as cty::c_char,
-                blocking_mode: servo.mode as cty::uint8_t,
-                color: servo.color as cty::uint8_t,
-            }
-        }
-
-        CSharedServos {
-            servos: array,
-            nb_servos: len,
-            parsing_failed: 0,
-        }
+    #[test]
+    fn ser_deser_servo() {
+        let servo = Servo {
+            id: 54,
+            known_position: 67,
+            control: Control::Speed,
+            data: 567,
+            blocked: false,
+            mode: BlockingMode::HoldOnblock,
+            color: Color::Blue,
+        };
+        let strd: String<N> = servo.to_string().unwrap();
+        let data =
+            "{\"blocked\":false,\"color\":\"Blue\",\"control\":\"Speed\",\"data\":567,\"id\":54,\"known_position\":67,\"mode\":\"HoldOnblock\"}"
+        ;
+        let servo2 = Servo::from_json_slice(data.as_bytes()).unwrap();
+        assert_eq!(servo, servo2);
     }
 }
-
-impl Into<ServoGroup> for CSharedServos {
-    fn into(self) -> ServoGroup {
-        let mut array: ArrayVec<[Servo; 8]> = ArrayVec::<[Servo; 8]>::new();
-
-        for servo in self.servos[0..self.nb_servos as usize].iter() {
-            array.push(Servo {
-                id: servo.id,
-                /// Cette variable depuis l'informatique n'est pas intéressante
-                known_position: servo.position,
-                control: match servo.command_type {
-                    0 => Control::Position(servo.command),
-                    1 => Control::Speed(servo.command),
-                    _ => unreachable!(),
-                },
-                blocked: servo.blocked != 0,
-                mode: match servo.blocking_mode {
-                    x if x == BlockingMode::Unblocking as u8 => BlockingMode::Unblocking,
-                    x if x == BlockingMode::HoldOnblock as u8 => BlockingMode::HoldOnblock,
-                    _ => unreachable!(),
-                },
-                color: match servo.color {
-                    x if x == Color::Black as u8 => Color::Black,
-                    x if x == Color::Red as u8 => Color::Red,
-                    x if x == Color::Green as u8 => Color::Green,
-                    x if x == Color::Yellow as u8 => Color::Yellow,
-                    x if x == Color::Blue as u8 => Color::Blue,
-                    x if x == Color::Magenta as u8 => Color::Magenta,
-                    x if x == Color::Cyan as u8 => Color::Cyan,
-                    x if x == Color::White as u8 => Color::White,
-                    _ => unreachable!(), // réception de 3 bits seulement, soit 7 au maximum
-                },
-            });
-        }
-        ServoGroup { servos: array }
-    }
-
-}
-*/

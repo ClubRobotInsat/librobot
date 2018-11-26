@@ -11,9 +11,9 @@
 extern crate std;
 
 pub extern crate arrayvec;
-
 extern crate cty;
 extern crate embedded_hal;
+extern crate heapless;
 extern crate libm;
 extern crate nb;
 extern crate qei;

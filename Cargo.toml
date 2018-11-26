@@ -12,7 +12,8 @@ qei = "~1.0.2"
 libm = "~0.1"
 serde = {version="1.0", default_features = false}
 serde_derive = {version="1.0", default_features = false}
-serde-json-core = "0.0.1"
+serde-json-core = { git = "https://github.com/gbip/serde-json-core" }
+heapless = "0.4.0"
 
 [dependencies.arrayvec]
 default-features = false
