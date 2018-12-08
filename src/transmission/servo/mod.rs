@@ -1,12 +1,12 @@
 //! Représentation haut-niveau d'un servo-moteur.
 
-use arrayvec::ArrayVec;
+//use arrayvec::ArrayVec;
 use heapless::{ArrayLength, String};
 use serde_json_core::de::{from_slice, Error as DError};
 use serde_json_core::ser::{to_string, Error as SError};
 
-use transmission::ffi::{get_size_servo_frame, CSharedServos, ErrorParsing, FrameParsingTrait};
-use transmission::Message;
+//use transmission::ffi::{get_size_servo_frame, CSharedServos, ErrorParsing, FrameParsingTrait};
+//use transmission::Message;
 
 /// Représentation d'un unique servo-moteur
 #[derive(Debug, Default, Copy, Clone, Eq, Deserialize, Serialize)]
@@ -18,6 +18,21 @@ pub struct Servo {
     pub known_position: u16,
     /// Commande du servo soit en angle soit en vitesse.
     pub control: Control,
+    /// Sens de rotation associé à une commande en vitesse.
+    /// TODO : on doit remplir de champ pour une commande en position aussi, mais je ne sais pas
+    /// comment faire rentrer ce champ dans le `control` : en faisant une enum plus intelligente :
+    /// ```txt
+    /// pub enum Control {
+    ///     Speed {
+    ///         rotation: Rotation,
+    ///     },
+    ///     Position,
+    /// }
+    /// ```
+    /// la lib `serde_json_core` n'est pas capable de désérialiser (elle attend des types primitifs
+    /// mais on lui donne une structure complexe à manger, aka `Control`) -- @Terae
+    pub rotation: Rotation,
+    /// Représente les informations de contrôle associées à la commande `Speed` ou `Position`.
     pub data: u16,
     /// Retourne vrai si le servo-moteur est bloqué
     pub blocked: bool,
@@ -28,10 +43,12 @@ pub struct Servo {
 }
 
 impl Servo {
+    /// Désérialisation d'un JSON en `Servo`
     pub fn from_json_slice(slice: &[u8]) -> Result<Self, DError> {
         from_slice(slice)
     }
 
+    /// Sérialisation d'un `Servo` en JSON
     pub fn to_string<B>(&self) -> Result<String<B>, SError>
     where
         B: ArrayLength<u8>,
@@ -72,6 +89,21 @@ pub enum BlockingMode {
 impl Default for BlockingMode {
     fn default() -> Self {
         BlockingMode::Unblocking
+    }
+}
+
+/// Représente le sens de rotation du servo moteur lorsqu'il est contrôle en vitesse
+#[derive(Debug, PartialEq, Copy, Clone, Eq, Serialize, Deserialize)]
+pub enum Rotation {
+    /// Rotation trigonométrique, qui est le sens par défaut
+    CounterClockwise,
+    /// Rotation horaire, ce qui représente une rotation inverse
+    Clockwise,
+}
+
+impl Default for Rotation {
+    fn default() -> Self {
+        Rotation::CounterClockwise
     }
 }
 
@@ -118,6 +150,7 @@ impl Default for Color {
 }
 
 impl ServoGroup {
+    /// Désérialisation d'un JSON en `ServoGroup`
     pub fn from_json_slice(slice: &[u8]) -> Result<Self, ()> {
         let result = from_slice(slice);
         match result {
@@ -136,13 +169,13 @@ impl ServoGroup {
         }
     }*/
 
-    /// Retourne la taille du message théorique, associé au nombre de servos présents.
+    /*/// Retourne la taille du message théorique, associé au nombre de servos présents.
     pub fn get_size_frame(nb_servos: u8) -> u8 {
         #[allow(unsafe_code)]
         unsafe {
             get_size_servo_frame(nb_servos)
         }
-    }
+    }*/
     /*
     /// Renvoie un résultat contenant soit les octets correspondant à un message à renvoyer à la
     /// partie informatique, soit une erreur.
@@ -155,25 +188,47 @@ impl ServoGroup {
 
 #[cfg(test)]
 mod test {
-    use super::{BlockingMode, Color, Control, Servo};
+    use super::{BlockingMode, Color, Control, Rotation, Servo};
     use heapless::consts::U256;
     use heapless::String;
     type N = U256;
 
     #[test]
-    fn ser_deser_servo() {
+    fn ser_deser_servo_speed() {
         let servo = Servo {
             id: 54,
             known_position: 67,
             control: Control::Speed,
+            rotation: Rotation::CounterClockwise,
             data: 567,
             blocked: false,
             mode: BlockingMode::HoldOnblock,
             color: Color::Blue,
         };
         let strd: String<N> = servo.to_string().unwrap();
+        let _data =
+            "{\"blocked\":false,\"color\":\"Blue\",\"control\":\"Speed\",\"rotation\":\"CounterClockwise\",\"data\":567,\"id\":54,\"known_position\":67,\"mode\":\"HoldOnblock\"}"
+        ;
+        let servo2 = Servo::from_json_slice(strd.as_bytes()).unwrap();
+        assert_eq!(servo, servo2);
+    }
+
+    #[test]
+    fn ser_deser_servo_position() {
+        let servo = Servo {
+            id: 54,
+            known_position: 67,
+            control: Control::Position,
+            //rotation: Rotation::CounterClockwise,
+            data: 567,
+            blocked: false,
+            mode: BlockingMode::HoldOnblock,
+            color: Color::Blue,
+            ..Default::default()
+        };
+        let _strd: String<N> = servo.to_string().unwrap();
         let data =
-            "{\"blocked\":false,\"color\":\"Blue\",\"control\":\"Speed\",\"data\":567,\"id\":54,\"known_position\":67,\"mode\":\"HoldOnblock\"}"
+            "{\"blocked\":false,\"color\":\"Blue\",\"control\":\"Position\",\"rotation\":\"CounterClockwise\",\"data\":567,\"id\":54,\"known_position\":67,\"mode\":\"HoldOnblock\"}"
         ;
         let servo2 = Servo::from_json_slice(data.as_bytes()).unwrap();
         assert_eq!(servo, servo2);
