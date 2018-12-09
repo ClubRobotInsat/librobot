@@ -83,7 +83,7 @@ pub enum BlockingMode {
     /// Le servo relâche la pression lorsqu'il est bloqué.
     Unblocking = 0,
     /// Le servo maintient un couple pour s'opposer au blocage.
-    HoldOnblock = 1,
+    HoldOnBlock = 1,
 }
 
 impl Default for BlockingMode {
