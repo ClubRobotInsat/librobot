@@ -202,7 +202,7 @@ mod test {
             rotation: Rotation::CounterClockwise,
             data: 567,
             blocked: false,
-            mode: BlockingMode::HoldOnblock,
+            mode: BlockingMode::HoldOnBlock,
             color: Color::Blue,
         };
         let strd: String<N> = servo.to_string().unwrap();
@@ -222,7 +222,7 @@ mod test {
             //rotation: Rotation::CounterClockwise,
             data: 567,
             blocked: false,
-            mode: BlockingMode::HoldOnblock,
+            mode: BlockingMode::HoldOnBlock,
             color: Color::Blue,
             ..Default::default()
         };
