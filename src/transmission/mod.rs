@@ -91,6 +91,7 @@ use arrayvec::ArrayVec;
 #[macro_use]
 mod frame;
 mod ffi;
+pub mod eth;
 pub mod servo;
 
 pub use self::ffi::ErrorParsing;
