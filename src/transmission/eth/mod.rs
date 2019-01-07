@@ -1,6 +1,9 @@
+//! Module pour la communication ethernet
+
 use embedded_hal::spi::FullDuplex;
 use w5500::*;
 
+/// La socket utilisee pour l'UDP
 pub const SOCKET_UDP: Socket = Socket::Socket0;
 
 /// Initialise la connexion ethernet pour permettre une communication
