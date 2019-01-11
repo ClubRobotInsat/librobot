@@ -207,7 +207,7 @@ mod test {
         };
         let strd: String<N> = servo.to_string().unwrap();
         let _data =
-            "{\"blocked\":false,\"color\":\"Blue\",\"control\":\"Speed\",\"rotation\":\"CounterClockwise\",\"data\":567,\"id\":54,\"known_position\":67,\"mode\":\"HoldOnblock\"}"
+            "{\"blocked\":false,\"color\":\"Blue\",\"control\":\"Speed\",\"rotation\":\"CounterClockwise\",\"data\":567,\"id\":54,\"known_position\":67,\"mode\":\"HoldOnBlock\"}"
         ;
         let servo2 = Servo::from_json_slice(strd.as_bytes()).unwrap();
         assert_eq!(servo, servo2);
@@ -228,7 +228,7 @@ mod test {
         };
         let _strd: String<N> = servo.to_string().unwrap();
         let data =
-            "{\"blocked\":false,\"color\":\"Blue\",\"control\":\"Position\",\"rotation\":\"CounterClockwise\",\"data\":567,\"id\":54,\"known_position\":67,\"mode\":\"HoldOnblock\"}"
+            "{\"blocked\":false,\"color\":\"Blue\",\"control\":\"Position\",\"rotation\":\"CounterClockwise\",\"data\":567,\"id\":54,\"known_position\":67,\"mode\":\"HoldOnBlock\"}"
         ;
         let servo2 = Servo::from_json_slice(data.as_bytes()).unwrap();
         assert_eq!(servo, servo2);
