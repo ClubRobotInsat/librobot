@@ -22,10 +22,15 @@
 //! ```
 
 mod pid;
+mod odometry;
 
 pub use self::pid::*;
+pub use self::odometry::*;
+
+
 use units::MilliMeter;
 use heapless::{String, ArrayLength};
+
 use serde_json_core::de::{from_slice, Error as DError};
 use serde_json_core::ser::{to_string, Error as SError};
 
@@ -34,26 +39,19 @@ use serde_json_core::ser::{to_string, Error as SError};
 pub struct Coord {
     /// La composante longeur (x)
     pub x: MilliMeter,
-    /// La composante largeur (x)
+    /// La composante largeur (y)
     pub y: MilliMeter,
 }
 
-impl Coord {
-    /// Crées des coordonnées à partir d'un nombre de tick
-    pub fn from_tick_count(_left: i64,
-                           _right: i64,
-                           _inter_axial: MilliMeter,
-                           _coder_radius: MilliMeter)
-                           -> Self {
-        unimplemented!()
-        /*
-        Coord {
-            x : 0,
-            y : 0
-        }
-        */
-    }
+/// Toutes les informations nécessaires sur les roues codeuses
+#[derive(Debug)]
+pub struct WheelsConstants {
+    /// rayon des roues codeuses
+    pub coder_radius: MilliMeter,
+    /// longueur entre les deux roues
+    pub inter_axial_length: MilliMeter,
 }
+
 
 /// Trame contenant les informations echangees entre l'info et l'elec.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]

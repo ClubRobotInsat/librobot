@@ -15,7 +15,7 @@ use navigation::Coord;
 #[allow(unused_imports)]
 use libm::F32Ext;
 
-/// Le PID du robot basé sur des unités du monde physique, il contiens :
+/// Le PID du robot basé sur des unités du monde physique, il contient :
 /// * un PID basé sur les ticks de roue codeuse
 /// * les informations nécessaires pour passer du monde des ticks de roue codeuses au monde physique
 #[derive(Debug)]
