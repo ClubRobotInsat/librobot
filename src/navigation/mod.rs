@@ -56,7 +56,7 @@ impl Coord {
 }
 
 /// Trame contenant les informations echangees entre l'info et l'elec.
-#[derive(Debug, Default, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct NavigationFrame {
     /// position x du robot en dixieme de millimetres
     x: u16,
