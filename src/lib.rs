@@ -23,7 +23,7 @@ extern crate serde_derive;
 extern crate serde_json_core;
 extern crate w5500;
 
-pub use transmission::*;
+pub use crate::transmission::*;
 
 pub mod navigation;
 pub mod transmission;

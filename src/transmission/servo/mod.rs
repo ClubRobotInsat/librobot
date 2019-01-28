@@ -1,12 +1,8 @@
 //! Représentation haut-niveau d'un servo-moteur.
 
-//use arrayvec::ArrayVec;
 use heapless::{ArrayLength, String};
 use serde_json_core::de::{from_slice, Error as DError};
 use serde_json_core::ser::{to_string, Error as SError};
-
-//use transmission::ffi::{get_size_servo_frame, CSharedServos, ErrorParsing, FrameParsingTrait};
-//use transmission::Message;
 
 /// Représentation d'un unique servo-moteur
 #[derive(Debug, Default, Copy, Clone, Eq, Deserialize, Serialize)]
@@ -158,32 +154,6 @@ impl ServoGroup {
             Err(_) => Err(()),
         }
     }
-    /*
-    /// Crée un nouveau groupe de servomoteur à partir d'un message.
-    pub fn from_message(from_data: Message) -> Result<Self, ErrorParsing> {
-        let read_servos: Result<CSharedServos, ErrorParsing> =
-            FrameParsingTrait::read_frame(from_data);
-        match read_servos {
-            Ok(s) => Ok(s.into()),
-            Err(e) => Err(e),
-        }
-    }*/
-
-    /*/// Retourne la taille du message théorique, associé au nombre de servos présents.
-    pub fn get_size_frame(nb_servos: u8) -> u8 {
-        #[allow(unsafe_code)]
-        unsafe {
-            get_size_servo_frame(nb_servos)
-        }
-    }*/
-    /*
-    /// Renvoie un résultat contenant soit les octets correspondant à un message à renvoyer à la
-    /// partie informatique, soit une erreur.
-    pub fn into_bytes(self) -> Result<Message, ErrorParsing> {
-        let ser: CSharedServos = self.into();
-        ser.write_frame()
-    }
-    */
 }
 
 #[cfg(test)]

@@ -1,8 +1,8 @@
 
 use core::f32;
 
-use units::MilliMeter;
-use navigation::{Coord, WheelsConstants};
+use crate::units::MilliMeter;
+use crate::navigation::{Coord, WheelsConstants};
 
 #[allow(unused_imports)]
 use libm::F32Ext;
@@ -76,10 +76,10 @@ impl Odometry {
 #[cfg(test)]
 mod test {
 
-    use units::MilliMeter;
+    use crate::units::MilliMeter;
 
-    use navigation::odometry::*;
-    use navigation::{WheelsConstants, Coord};
+    use crate::navigation::odometry::*;
+    use crate::navigation::{WheelsConstants, Coord};
 
     #[test]
     fn odom_forward() {

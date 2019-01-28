@@ -1,4 +1,4 @@
-use transmission::{Message, MessageKind};
+use crate::transmission::{Message, MessageKind};
 
 /// La structure de donnée qui est utilisée pour la communication en electronique.
 /// Pour la création d'une trame il vaut mieux utiliser la macro [frame!][macro@frame].
@@ -131,8 +131,8 @@ impl Into<Message> for Frame {
 
 #[cfg(test)]
 mod test {
-    use transmission::MessageKind;
-    use transmission::*;
+    use crate::transmission::MessageKind;
+    use crate::transmission::*;
 
     #[test]
     fn frame_macro() {

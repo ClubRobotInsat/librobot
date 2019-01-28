@@ -61,7 +61,7 @@ impl Sub for MilliMeter {
 #[cfg(test)]
 mod test {
 
-    use units::MilliMeter;
+    use crate::units::MilliMeter;
 
     #[test]
     fn mm_to_meter() {

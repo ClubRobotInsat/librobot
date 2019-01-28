@@ -3,6 +3,7 @@ authors = ["Paul Florence <florencepaul@hotmail.fr>, Benjamin BIGEY <bigey@etud.
 name = "librobot"
 version = "0.2.0"
 build = "build.rs"
+edition = "2018"
 
 [dependencies]
 embedded-hal = "~0.2.1"

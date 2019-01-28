@@ -27,7 +27,7 @@ use cty;
 
 use arrayvec::ArrayVec;
 
-use transmission::Message;
+use crate::transmission::Message;
 
 /*extern {
         static NBR_SERVOS : cty::uint8_t;

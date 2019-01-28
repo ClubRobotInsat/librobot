@@ -8,9 +8,9 @@ use qei::QeiManager;
 use embedded_hal::digital::OutputPin;
 use embedded_hal::{PwmPin, Qei};
 
-use units::MilliMeter;
+use crate::units::MilliMeter;
 
-use navigation::Coord;
+use crate::navigation::Coord;
 
 #[allow(unused_imports)]
 use libm::F32Ext;
@@ -428,10 +428,10 @@ mod test {
     use std::rc::Rc;
 
     use embedded_hal::Qei;
-    use navigation::pid::{Command, Pid, RealWorldPid};
-    use navigation::*;
+    use crate::navigation::pid::{Command, Pid, RealWorldPid};
+    use crate::navigation::*;
     use qei::QeiManager;
-    use units::MilliMeter;
+    use crate::units::MilliMeter;
 
     #[derive(Debug, Clone, Copy)]
     enum Direction {
