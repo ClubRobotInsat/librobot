@@ -153,6 +153,7 @@ where
     L: Qei<Count = u16>,
     R: Qei<Count = u16>,
 {
+    /// Crée un nouveau PID
     pub fn new(
         qei_left: QeiManager<L>,
         qei_right: QeiManager<R>,
@@ -167,6 +168,7 @@ where
         }
     }
 
+    /// Mets à jour le PID et la position du robot
     pub fn update(&mut self) {
         self.qei.0.sample_unwrap();
         self.qei.1.sample_unwrap();
@@ -176,6 +178,7 @@ where
             .update(left_ticks, right_ticks, &mut self.constants);
     }
 
+    /// Renvoies la position
     pub fn get_position(&self) -> Coord {
         self.odometry.get_position()
     }

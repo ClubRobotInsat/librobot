@@ -305,9 +305,7 @@ mod test {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    use crate::navigation::pid::{Command, Pid, RealWorldPid};
-    use crate::navigation::*;
-    use crate::units::MilliMeter;
+    use crate::navigation::pid::{Command, Pid};
     use embedded_hal::Qei;
     use qei::QeiManager;
 
