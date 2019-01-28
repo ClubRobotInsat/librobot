@@ -90,8 +90,8 @@ use arrayvec::ArrayVec;
 
 #[macro_use]
 mod frame;
-mod ffi;
 pub mod eth;
+mod ffi;
 pub mod servo;
 
 pub use self::ffi::ErrorParsing;

@@ -21,16 +21,17 @@
 //!+-----------------------+
 //! ```
 
-mod pid;
 mod odometry;
+mod pid;
 
+use self::odometry::Odometry;
 pub use self::pid::*;
-pub use self::odometry::*;
-
 
 use crate::units::MilliMeter;
-use heapless::{String, ArrayLength};
+use heapless::{ArrayLength, String};
 
+use embedded_hal::Qei;
+use qei::QeiManager;
 use serde_json_core::de::{from_slice, Error as DError};
 use serde_json_core::ser::{to_string, Error as SError};
 
@@ -45,13 +46,12 @@ pub struct Coord {
 
 /// Toutes les informations nécessaires sur les roues codeuses
 #[derive(Debug)]
-pub struct WheelsConstants {
+pub struct RobotConstants {
     /// rayon des roues codeuses
     pub coder_radius: MilliMeter,
     /// longueur entre les deux roues
     pub inter_axial_length: MilliMeter,
 }
-
 
 /// Trame contenant les informations echangees entre l'info et l'elec.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
@@ -114,9 +114,70 @@ impl NavigationFrame {
 
     /// Construit une chaine de caractère en json à partir de cette trame
     pub fn to_string<B>(&self) -> Result<String<B>, SError>
-        where B: ArrayLength<u8>
+    where
+        B: ArrayLength<u8>,
     {
         to_string(self)
+    }
+}
+
+/// PID + ODOMETRY
+pub struct Pid<L, R>
+where
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
+{
+    pid: RealWorldPid,
+    odometry: Odometry,
+    constants: RobotConstants,
+    qei: (QeiManager<L>, QeiManager<R>),
+}
+
+impl<L, R> core::fmt::Debug for Pid<L, R>
+where
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
+{
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
+        write!(
+            f,
+            "Pid {{ left: {}, right: {} }}",
+            self.qei.0.count(),
+            self.qei.1.count()
+        )
+    }
+}
+
+impl<L, R> Pid<L, R>
+where
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
+{
+    pub fn new(
+        qei_left: QeiManager<L>,
+        qei_right: QeiManager<R>,
+        params: &PIDParameters,
+        constants: RobotConstants,
+    ) -> Self {
+        Pid {
+            pid: RealWorldPid::new(params),
+            odometry: Odometry::new(),
+            constants,
+            qei: (qei_left, qei_right),
+        }
+    }
+
+    pub fn update(&mut self) {
+        self.qei.0.sample_unwrap();
+        self.qei.1.sample_unwrap();
+        let (left_ticks, right_ticks) = (self.qei.0.count(), self.qei.1.count());
+        self.pid.update(left_ticks, right_ticks);
+        self.odometry
+            .update(left_ticks, right_ticks, &mut self.constants);
+    }
+
+    pub fn get_position(&self) -> Coord {
+        self.odometry.get_position()
     }
 }
 

@@ -9,10 +9,12 @@ pub const SOCKET_UDP: Socket = Socket::Socket0;
 /// Initialise la connexion ethernet pour permettre une communication
 /// a l'aide de la librairie W5500. La socket a utiliser pour lire
 /// les message est eth::SOCKET_UDP
-pub fn init_eth<E: core::fmt::Debug>(eth: &mut W5500,
-                                     spi: &mut FullDuplex<u8, Error = E>,
-                                     mac: &MacAddress,
-                                     ip: &IpAddress) {
+pub fn init_eth<E: core::fmt::Debug>(
+    eth: &mut W5500,
+    spi: &mut FullDuplex<u8, Error = E>,
+    mac: &MacAddress,
+    ip: &IpAddress,
+) {
     //eth.set_mode(spi,false, false, false, true).unwrap();
     // using a 'locally administered' MAC address
     eth.init(spi).expect("Failed to initialize w5500");

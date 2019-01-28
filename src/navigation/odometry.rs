@@ -1,8 +1,7 @@
-
 use core::f32;
 
+use crate::navigation::{Coord, RobotConstants};
 use crate::units::MilliMeter;
-use crate::navigation::{Coord, WheelsConstants};
 
 #[allow(unused_imports)]
 use libm::F32Ext;
@@ -10,7 +9,7 @@ use libm::F32Ext;
 /// Contient la position du robot et peut se mettre à jour en
 /// fonction des informations provenant des roues codeuses
 #[derive(Debug)]
-pub struct Odometry {
+pub(crate) struct Odometry {
     /// ticks à gauche
     left_ticks: i64,
     /// ticks à droite
@@ -18,36 +17,37 @@ pub struct Odometry {
     /// Coordonnees du robot
     robot_pos: Coord,
     /// Angle du robot en millirad
-    angle: i64
+    angle: i64,
 }
 
 impl Odometry {
     /// Crée une nouvelle odometrie. La position du robot et des
     /// roues codeuses est initialisée à 0.
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Odometry {
-            left_ticks:0,
-            right_ticks:0,
+            left_ticks: 0,
+            right_ticks: 0,
             robot_pos: Coord {
                 x: MilliMeter(0),
                 y: MilliMeter(0),
             },
-            angle: 0
+            angle: 0,
         }
     }
 
     /// Définit les informations de position du robot.
-    pub fn set_position(&mut self, new_pos: Coord, new_angle: i64) {
+    pub(crate) fn set_position(&mut self, new_pos: Coord, new_angle: i64) {
         self.robot_pos = new_pos;
         self.angle = new_angle;
     }
 
+    pub(crate) fn get_position(&self) -> Coord {
+        self.robot_pos
+    }
+
     /// Met à jour l'odometrie à partir de la variation des ticks
     /// de chaque roue codeuse
-    pub fn update(&mut self, left_ticks: i64,
-                  right_ticks: i64,
-                  constants: &WheelsConstants) {
-
+    pub(crate) fn update(&mut self, left_ticks: i64, right_ticks: i64, constants: &RobotConstants) {
         let distance_per_wheel_turn =
             constants.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
 
@@ -72,20 +72,19 @@ impl Odometry {
     }
 }
 
-
 #[cfg(test)]
 mod test {
 
     use crate::units::MilliMeter;
 
     use crate::navigation::odometry::*;
-    use crate::navigation::{WheelsConstants, Coord};
+    use crate::navigation::{Coord, RobotConstants};
 
     #[test]
     fn odom_forward() {
         let mut odom = Odometry::new();
 
-        let constants = WheelsConstants {
+        let constants = RobotConstants {
             coder_radius: MilliMeter(31),
             inter_axial_length: MilliMeter(223),
         };
@@ -100,7 +99,7 @@ mod test {
     fn odom_backward() {
         let mut odom = Odometry::new();
 
-        let constants = WheelsConstants {
+        let constants = RobotConstants {
             coder_radius: MilliMeter(31),
             inter_axial_length: MilliMeter(223),
         };
@@ -115,12 +114,18 @@ mod test {
     fn odom_angle_custom() {
         let mut odom = Odometry::new();
 
-        let constants = WheelsConstants {
+        let constants = RobotConstants {
             coder_radius: MilliMeter(31),
             inter_axial_length: MilliMeter(223),
         };
 
-        odom.set_position(Coord {x:MilliMeter(0), y:MilliMeter(0)}, 3141/4 );
+        odom.set_position(
+            Coord {
+                x: MilliMeter(0),
+                y: MilliMeter(0),
+            },
+            3141 / 4,
+        );
         odom.update(1024, 1024, &constants);
 
         assert_eq!(odom.robot_pos.x, MilliMeter(138));
@@ -131,7 +136,7 @@ mod test {
     fn odom_complex_navigation() {
         let mut odom = Odometry::new();
 
-        let constants = WheelsConstants {
+        let constants = RobotConstants {
             coder_radius: MilliMeter(31),
             inter_axial_length: MilliMeter(223),
         };

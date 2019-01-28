@@ -3,14 +3,10 @@
 use core::f32;
 use core::fmt::{Debug, Display, Formatter, Result};
 
-use qei::QeiManager;
-
 use embedded_hal::digital::OutputPin;
-use embedded_hal::{PwmPin, Qei};
+use embedded_hal::PwmPin;
 
 use crate::units::MilliMeter;
-
-use crate::navigation::Coord;
 
 #[allow(unused_imports)]
 use libm::F32Ext;
@@ -18,15 +14,8 @@ use libm::F32Ext;
 /// Le PID du robot basé sur des unités du monde physique, il contient :
 /// * un PID basé sur les ticks de roue codeuse
 /// * les informations nécessaires pour passer du monde des ticks de roue codeuses au monde physique
-#[derive(Debug)]
-pub struct RealWorldPid<L, R>
-where
-    L: Qei<Count = u16>,
-    R: Qei<Count = u16>,
-    u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
-    u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
-{
-    internal_pid: Pid<L, R>,
+pub(crate) struct RealWorldPid {
+    internal_pid: Pid,
     coder_radius: MilliMeter,
     inter_axial_length: MilliMeter,
 }
@@ -50,13 +39,7 @@ pub struct PIDParameters {
     pub max_output: u16,
 }
 
-impl<L, R> RealWorldPid<L, R>
-where
-    L: Qei<Count = u16>,
-    R: Qei<Count = u16>,
-    u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
-    u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
-{
+impl RealWorldPid {
     /// Crée un nouveau PID à partir de :
     /// *  2 struct de `embedded_hal` wrappés dans des `QeiManager`représentant les encodeurs quadratiques gauche et droite
     /// * les coefficients de l'asservissement,
@@ -64,7 +47,7 @@ where
     /// * les valeurs physiques du robot :
     ///     * distance interaxe en mm
     ///     * rayon d'une roue codeuse en mm
-    pub fn new(qei_left: QeiManager<L>, qei_right: QeiManager<R>, params: &PIDParameters) -> Self {
+    pub(crate) fn new(params: &PIDParameters) -> Self {
         RealWorldPid {
             internal_pid: Pid::new(
                 params.pos_kp,
@@ -72,8 +55,6 @@ where
                 params.orient_kp,
                 params.orient_kd,
                 params.max_output,
-                qei_left,
-                qei_right,
             ),
             coder_radius: params.coder_radius,
             inter_axial_length: params.inter_axial_length,
@@ -81,12 +62,12 @@ where
     }
 
     /// Renvoie un tuple contenant la commande à appliqué au moteur gauche et au moteur droit
-    pub fn update(&mut self) -> (Command, Command) {
-        self.internal_pid.update()
+    pub(crate) fn update(&mut self, left_ticks: i64, right_ticks: i64) -> (Command, Command) {
+        self.internal_pid.update(left_ticks, right_ticks)
     }
 
     /// Ordonne au robot d'avancer de `distance`
-    pub fn forward(&mut self, distance: MilliMeter) {
+    pub(crate) fn forward(&mut self, distance: MilliMeter) {
         let distance_per_wheel_turn =
             self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
@@ -96,60 +77,12 @@ where
     }
 
     /// Ordonne au robot de reculer de `distance`
-    pub fn backward(&mut self, distance: MilliMeter) {
+    pub(crate) fn backward(&mut self, distance: MilliMeter) {
         let distance_per_wheel_turn =
             self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
         let ticks = 1024.0 * nb_wheel_turn;
         self.internal_pid.decrement_position_goal(ticks as i64);
-    }
-
-    /// Permet de récuperer l'orientation du robot à partir d'une différence de ticks de roue codeuse.
-    /// Renvoi des radians
-    pub fn get_orientation(&mut self) -> f32 {
-        // On a 2pi = un tour de robot, soit 2 * pi radians = inter_axial * 2 * pi mm
-        // Donc, nb_tour = 2*inter_axial*pi / ((tick_left - tick_right) * wheel_diameter)
-        // On converti une différence de tick en angle
-        let (tick_left, tick_right) = self.internal_pid.get_qei_count();
-        if tick_left - tick_right == 0 {
-            0.0
-        } else {
-            2.0 * self.inter_axial_length.as_millimeters() as f32 * core::f32::consts::PI
-                / ((tick_left - tick_right) as f32 * self.coder_radius.as_millimeters() as f32)
-        }
-    }
-
-    /// Renvoies la position du robot
-    pub fn get_position(&mut self) -> Coord {
-        let (tick_left, tick_right) = self.internal_pid.get_qei_count();
-
-        let orientation = self.get_orientation();
-        let distance = ((tick_left + tick_right) as f32 / 1024.0 /* x2.0 manquant car on simplifie en haut et en bas */)
-            * self.coder_radius.as_millimeters() as f32 * /* x2.0 manquant car on simplifie en haut et en bas */ f32::consts::PI;
-
-        let (sin, cos) = orientation.sin_cos();
-        let x = distance * sin;
-        let y = distance * cos;
-        Coord {
-            x: MilliMeter(x.round() as i64),
-            y: MilliMeter(y.round() as i64),
-        }
-    }
-
-    /// Remets à 0 l'origine du robot
-    pub fn reset_origin(&mut self) {
-        self.internal_pid.reset_origin()
-    }
-
-    /// Renvoie les ticks comptés par les roues codeuses de manière brute, sans traitement.
-    /// La valeur retournée est sous la forme (gauche,droite).
-    pub fn get_qei_ticks(&mut self) -> (i64, i64) {
-        self.internal_pid.get_qei_ticks()
-    }
-
-    /// Renvoie sous la forme (gauche,droite) le but du PID en terme de ticks de roue codeuse.
-    pub fn get_qei_goal(&mut self) -> (i64, i64) {
-        self.internal_pid.get_qei_goal()
     }
 }
 
@@ -227,17 +160,9 @@ impl Display for Command {
 }
 
 /// Le PID du robot
-pub(crate) struct Pid<L, R>
-where
-    L: Qei<Count = u16>,
-    R: Qei<Count = u16>,
-    u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
-    u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
-{
+pub(crate) struct Pid {
     old_left_count: i64,
     old_right_count: i64,
-    left_qei: QeiManager<L>,
-    right_qei: QeiManager<R>,
     pos_kp: f32,
     pos_kd: f32,
     orient_kp: f32,
@@ -250,31 +175,8 @@ where
     orientation_order: i64,
 }
 
-impl<L, R> Debug for Pid<L, R>
-where
-    L: Qei<Count = u16>,
-    R: Qei<Count = u16>,
-    u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
-    u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
-{
-    fn fmt(&self, f: &mut Formatter) -> Result {
-        write!(
-            f,
-            "QeiLeft : {}, QeiRight : {}",
-            self.left_qei.count(),
-            self.right_qei.count()
-        )
-    }
-}
-
 // Implémentation du PID
-impl<L, R> Pid<L, R>
-where
-    L: Qei<Count = u16>,
-    R: Qei<Count = u16>,
-    u16: core::convert::From<<R as embedded_hal::Qei>::Count>,
-    u16: core::convert::From<<L as embedded_hal::Qei>::Count>,
-{
+impl Pid {
     /// Crée un nouveau PID à partir :
     /// * des coefficients de l'asservissement
     /// * d'une valeur maximale de sortie (la valeur du registre ARR du timer qui gère la PWM par
@@ -286,14 +188,10 @@ where
         orient_kp: f32,
         orient_kd: f32,
         max_output: u16,
-        left_qei: QeiManager<L>,
-        right_qei: QeiManager<R>,
     ) -> Self {
         Pid {
             old_left_count: 0,
             old_right_count: 0,
-            left_qei,
-            right_qei,
             pos_kp,
             pos_kd,
             orient_kp,
@@ -302,16 +200,6 @@ where
             position_order: 0,
             orientation_order: 0,
         }
-    }
-
-    /// Renvoie la valeur en ticks de la distance parcourue par les roues codeuses
-    pub(crate) fn get_qei_count(&mut self) -> (i64, i64) {
-        (self.left_qei.count(), self.right_qei.count())
-    }
-
-    pub(crate) fn reset_origin(&mut self) {
-        self.left_qei.reset();
-        self.right_qei.reset();
     }
 
     /// Mets à jour la consigne en position en terme de tick de roues codeuses
@@ -377,13 +265,9 @@ where
 
     /// Renvoie la nouvelle consigne à appliquer aux roues pour le pid
     /// L'algorithme est issue de [cette](https://www.rcva.fr/10-ans-dexperience/9/) page internet.
-    pub(crate) fn update(&mut self) -> (Command, Command) {
-        // Mise à jour des QEI QEI
-        self.left_qei.sample_unwrap();
-        self.right_qei.sample_unwrap();
-
+    pub(crate) fn update(&mut self, left_ticks: i64, right_ticks: i64) -> (Command, Command) {
         // Mise à jour de la mémoire du PID
-        let (new_left_count, new_right_count) = (self.left_qei.count(), self.right_qei.count());
+        let (new_left_count, new_right_count) = (left_ticks, right_ticks);
         let (left_speed, right_speed) = (
             new_left_count - self.old_left_count,
             new_right_count - self.old_right_count,
@@ -406,12 +290,6 @@ where
         (self.truncate(left_cmd), self.truncate(right_cmd))
     }
 
-    /// Renvoie les ticks comptés par les roues codeuses sous la forme
-    /// (gauche, droite)
-    pub fn get_qei_ticks(&self) -> (i64, i64) {
-        (self.left_qei.count(), self.right_qei.count())
-    }
-
     /// Renvoie le but du PID en ticks de roue codeuse sous la forme (gauche,droite).
     pub fn get_qei_goal(&self) -> (i64, i64) {
         (
@@ -427,11 +305,11 @@ mod test {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    use embedded_hal::Qei;
     use crate::navigation::pid::{Command, Pid, RealWorldPid};
     use crate::navigation::*;
-    use qei::QeiManager;
     use crate::units::MilliMeter;
+    use embedded_hal::Qei;
+    use qei::QeiManager;
 
     #[derive(Debug, Clone, Copy)]
     enum Direction {
@@ -506,17 +384,26 @@ mod test {
         }
     }
 
+    fn get_qei<T>(qei: &mut QeiManager<T>) -> i64
+    where
+        T: Qei,
+        u16: core::convert::From<<T as embedded_hal::Qei>::Count>,
+    {
+        qei.sample_unwrap();
+        qei.count() as i64
+    }
+
     #[test]
     fn pid_forward() {
         let mut motor_left = DummyMotor::new();
         let mut motor_right = DummyMotor::new();
-        let qei_left = QeiManager::new(motor_left.clone());
-        let qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800, qei_left, qei_right);
+        let mut qei_left = QeiManager::new(motor_left.clone());
+        let mut qei_right = QeiManager::new(motor_right.clone());
+        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
         pid.set_position_goal(9000);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update();
+            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -531,13 +418,13 @@ mod test {
     fn pid_backward() {
         let mut motor_left = DummyMotor::new();
         let mut motor_right = DummyMotor::new();
-        let qei_left = QeiManager::new(motor_left.clone());
-        let qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800, qei_left, qei_right);
+        let mut qei_left = QeiManager::new(motor_left.clone());
+        let mut qei_right = QeiManager::new(motor_right.clone());
+        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
         pid.set_position_goal(-9137);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update();
+            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -552,13 +439,13 @@ mod test {
     fn pid_rotation_left() {
         let mut motor_left = DummyMotor::new();
         let mut motor_right = DummyMotor::new();
-        let qei_left = QeiManager::new(motor_left.clone());
-        let qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800, qei_left, qei_right);
+        let mut qei_left = QeiManager::new(motor_left.clone());
+        let mut qei_right = QeiManager::new(motor_right.clone());
+        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
         pid.set_orientation_goal(733);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update();
+            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -583,13 +470,13 @@ mod test {
     fn pid_rotation_right() {
         let mut motor_left = DummyMotor::new();
         let mut motor_right = DummyMotor::new();
-        let qei_left = QeiManager::new(motor_left.clone());
-        let qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800, qei_left, qei_right);
+        let mut qei_left = QeiManager::new(motor_left.clone());
+        let mut qei_right = QeiManager::new(motor_right.clone());
+        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
         pid.set_orientation_goal(-733);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update();
+            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -609,38 +496,4 @@ mod test {
             733 / 2
         );
     }
-
-    //#[test]
-    fn real_world_pid_forward() {
-        let mut motor_left = DummyMotor::new();
-        let mut motor_right = DummyMotor::new();
-        let qei_left = QeiManager::new(motor_left.clone());
-        let qei_right = QeiManager::new(motor_right.clone());
-        let params = PIDParameters {
-            coder_radius: MilliMeter(31),
-            inter_axial_length: MilliMeter(223),
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 800,
-        };
-        let mut pid = RealWorldPid::new(qei_left, qei_right, &params);
-        pid.forward(MilliMeter(50));
-        for _ in 0..500 {
-            let (cmdl, cmdr) = pid.update();
-            motor_left.apply_command(cmdl);
-            motor_right.apply_command(cmdr);
-            motor_left.update();
-            motor_right.update();
-        }
-        assert_eq!(
-            Coord {
-                x: MilliMeter(0),
-                y: MilliMeter(50)
-            },
-            pid.get_position()
-        );
-    }
-
 }
