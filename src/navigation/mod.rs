@@ -71,7 +71,7 @@ pub struct NavigationFrame {
     /// si vrai, l'info peut fixer (x, y, angle)
     reset: bool,
     /// commande à effectuer
-    command: Command,
+    command: MacroCommand,
     /// argument 1 de la commande
     args_cmd1: u16,
     /// argument 2 de la commande
@@ -85,7 +85,7 @@ pub struct NavigationFrame {
 
 /// Les differentes commandes que le déplacement peut effectuer
 #[derive(Debug, PartialEq, Copy, Clone, Eq, Serialize, Deserialize)]
-pub enum Command {
+pub enum MacroCommand {
     /// avancer.
     /// Arguments : distance, _
     GoForward,
@@ -131,6 +131,7 @@ where
     odometry: Odometry,
     constants: RobotConstants,
     qei: (QeiManager<L>, QeiManager<R>),
+    command: (Command, Command),
 }
 
 impl<L, R> core::fmt::Debug for Pid<L, R>
@@ -165,6 +166,7 @@ where
             odometry: Odometry::new(),
             constants,
             qei: (qei_left, qei_right),
+            command: (Command::Front(0), Command::Front(0)),
         }
     }
 
@@ -173,12 +175,17 @@ where
         self.qei.0.sample_unwrap();
         self.qei.1.sample_unwrap();
         let (left_ticks, right_ticks) = (self.qei.0.count(), self.qei.1.count());
-        self.pid.update(left_ticks, right_ticks);
+        self.command = self.pid.update(left_ticks, right_ticks);
         self.odometry
             .update(left_ticks, right_ticks, &mut self.constants);
     }
 
-    /// Renvoies la position
+    /// Renvoie la commande courante
+    pub fn get_command(&self) -> (Command, Command) {
+        self.command
+    }
+
+    /// Renvoie la position
     pub fn get_position(&self) -> Coord {
         self.odometry.get_position()
     }
