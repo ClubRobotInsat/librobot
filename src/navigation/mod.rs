@@ -71,7 +71,7 @@ pub struct NavigationFrame {
     /// si vrai, l'info peut fixer (x, y, angle)
     reset: bool,
     /// commande à effectuer
-    command: MacroCommand,
+    command: NavigationCommand,
     /// argument 1 de la commande
     args_cmd1: u16,
     /// argument 2 de la commande
@@ -85,7 +85,7 @@ pub struct NavigationFrame {
 
 /// Les differentes commandes que le déplacement peut effectuer
 #[derive(Debug, PartialEq, Copy, Clone, Eq, Serialize, Deserialize)]
-pub enum MacroCommand {
+pub enum NavigationCommand {
     /// avancer.
     /// Arguments : distance, _
     GoForward,
@@ -192,4 +192,10 @@ where
 }
 
 #[cfg(test)]
-mod test {}
+mod test {
+
+    #[test]
+    fn test_full_session() {
+
+    }
+}

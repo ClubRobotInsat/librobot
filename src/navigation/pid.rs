@@ -84,6 +84,16 @@ impl RealWorldPid {
         let ticks = 1024.0 * nb_wheel_turn;
         self.internal_pid.decrement_position_goal(ticks as i64);
     }
+
+    /// Ordonne au robot de tourner de `angle` (en milliradians)
+    pub(crate) fn rotate(&mut self, angle: i64) {
+        let turn_distance = angle as f32 * self.inter_axial_length.as_millimeters() as f32 * 0.001 * 0.5;
+        let distance_per_wheel_turn =
+            self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
+        let nb_wheel_turn = turn_distance / distance_per_wheel_turn;
+        let ticks = 1024.0 * nb_wheel_turn;
+        self.internal_pid.increment_orientation_goal(ticks as i64);
+    }
 }
 
 /// Un moteur avec ses deux broches : vitesse et direction.
@@ -220,6 +230,11 @@ impl Pid {
         self.orientation_order = orientation;
     }
 
+    /// Incrémente la consigne en orientation de la valeur donnée, en tick de roues codeuses
+    pub(crate) fn increment_orientation_goal(&mut self, orientation: i64) {
+        self.orientation_order += orientation;
+    }
+
     /// Renvoie la nouvelle consigne à appliquer aux deux roues pour atteindre la commande en position
     fn update_position_command(
         &self,
@@ -305,7 +320,8 @@ mod test {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    use crate::navigation::pid::{Command, Pid};
+    use crate::navigation::pid::{Command, Pid, RealWorldPid, PIDParameters};
+    use crate::units::MilliMeter;
     use embedded_hal::Qei;
     use qei::QeiManager;
 
@@ -454,7 +470,7 @@ mod test {
             (motor_left.get_real_position() + 733 / 2).abs() <= 1,
             "{} should be {}",
             motor_left.get_real_position(),
-            733 / 2
+            -733 / 2
         );
         assert!(
             (motor_right.get_real_position() - 733 / 2).abs() <= 1,
@@ -491,7 +507,69 @@ mod test {
             (motor_right.get_real_position() + 733 / 2).abs() <= 1,
             "{} should be {}",
             motor_right.get_real_position(),
-            733 / 2
+            -733 / 2
+        );
+    }
+
+    #[test]
+    fn real_world_pid_forward() {
+        let pid_parameters = PIDParameters {
+            coder_radius: MilliMeter(30),
+            inter_axial_length: MilliMeter(300),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        };
+
+        let mut pid = RealWorldPid::new(&pid_parameters);
+        pid.forward(MilliMeter(100));
+
+        let (goall, goalr) = pid.internal_pid.get_qei_goal();
+
+        assert!(
+            (goall - 543).abs() <= 1,
+            "{} should be {}",
+            goall,
+            543
+        );
+        assert!(
+            (goalr - 543).abs() <= 1,
+            "{} should be {}",
+            goalr,
+            543
+        );
+    }
+
+    #[test]
+    fn real_world_pid_rotation() {
+        let pid_parameters = PIDParameters {
+            coder_radius: MilliMeter(30),
+            inter_axial_length: MilliMeter(300),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        };
+
+        let mut pid = RealWorldPid::new(&pid_parameters);
+        pid.rotate(785); // PI / 4 en milliradians
+
+        let (goall, goalr) = pid.internal_pid.get_qei_goal();
+
+        assert!(
+            (goall + 640).abs() <= 1,
+            "{} should be {}",
+            goall,
+            -640
+        );
+        assert!(
+            (goalr - 640).abs() <= 1,
+            "{} should be {}",
+            goalr,
+            640
         );
     }
 }
