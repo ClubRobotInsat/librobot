@@ -189,6 +189,11 @@ where
     pub fn get_position(&self) -> Coord {
         self.odometry.get_position()
     }
+
+    // TODO moche
+    pub fn forward(&mut self, distance:MilliMeter) {
+        self.pid.forward(distance);
+    }
 }
 
 #[cfg(test)]
