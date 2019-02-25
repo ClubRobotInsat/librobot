@@ -160,6 +160,7 @@ impl ServoGroup {
 #[cfg(test)]
 mod test {
     use super::{BlockingMode, Color, Control, Rotation, Servo};
+    use crate::transmission::Jsonizable;
     use heapless::consts::U256;
     use heapless::String;
     type N = U256;
