@@ -88,8 +88,6 @@
 
 use arrayvec::ArrayVec;
 
-#[macro_use]
-mod frame;
 pub mod eth;
 mod ffi;
 
@@ -97,7 +95,6 @@ pub mod io;
 pub mod servo;
 
 pub use self::ffi::ErrorParsing;
-pub use self::frame::*;
 
 use heapless::{ArrayLength, String};
 
