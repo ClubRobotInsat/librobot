@@ -161,6 +161,16 @@ pub enum Command {
     Back(u16),
 }
 
+impl Command {
+    /// Renvoie l'intensité de la commande
+    pub fn get_value(&self) -> u16 {
+        match self {
+            Command::Front(val) => *val,
+            Command::Back(val) => *val,
+        }
+    }
+}
+
 impl Display for Command {
     fn fmt(&self, f: &mut Formatter) -> Result {
         match self {
