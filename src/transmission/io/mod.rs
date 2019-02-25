@@ -31,7 +31,7 @@ pub struct IO {
     /// L'état de la tirette
     tirette: TriggerState,
     /// L'état des vannes
-    vannes: [IOState; 8],
+    valves: [IOState; 8],
 }
 
 impl Jsonizable for IO {

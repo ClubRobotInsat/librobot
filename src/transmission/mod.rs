@@ -91,7 +91,7 @@ use arrayvec::ArrayVec;
 pub mod eth;
 
 pub mod io;
-mod navigation;
+pub mod navigation;
 pub mod servo;
 
 use heapless::{ArrayLength, String};
