@@ -124,6 +124,11 @@ where
     pub fn forward(&mut self, distance: MilliMeter) {
         self.pid.forward(distance);
     }
+
+    /// Renvoie les ticks comptés par les roues codeuses
+    pub fn get_qei_ticks(&self) -> (i64, i64) {
+        (self.qei.0.count(), self.qei.1.count())
+    }
 }
 
 #[cfg(test)]
