@@ -89,12 +89,10 @@
 use arrayvec::ArrayVec;
 
 pub mod eth;
-mod ffi;
 
 pub mod io;
+mod navigation;
 pub mod servo;
-
-pub use self::ffi::ErrorParsing;
 
 use heapless::{ArrayLength, String};
 
