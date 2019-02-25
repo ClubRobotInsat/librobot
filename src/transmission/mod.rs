@@ -99,6 +99,11 @@ pub mod servo;
 pub use self::ffi::ErrorParsing;
 pub use self::frame::*;
 
+use heapless::{ArrayLength, String};
+
+use serde_json_core::de::Error as DError;
+use serde_json_core::ser::Error as SError;
+
 /// Taille maximale du message véhiculé par la frame
 pub const FRAME_MAX_SIZE: usize = 256 /* - 6*/;
 /// Un message est un tableau de 256 octets.
@@ -131,4 +136,18 @@ impl MessageKind {
             _ => Err(()),
         }
     }
+}
+
+/// Traits utilitaires implémentés par toutes les structures que l'on envoie/récupère du réseau
+pub trait Jsonizable
+where
+    Self: core::marker::Sized,
+{
+    /// Désérialisation d'un JSON en `Servo`
+    fn from_json_slice(slice: &[u8]) -> Result<Self, DError>;
+
+    /// Sérialisation d'un `Servo` en JSON
+    fn to_string<B>(&self) -> Result<String<B>, SError>
+    where
+        B: ArrayLength<u8>;
 }

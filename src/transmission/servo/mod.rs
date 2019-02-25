@@ -1,5 +1,6 @@
 //! Représentation haut-niveau d'un servo-moteur.
 
+use crate::transmission::Jsonizable;
 use heapless::{ArrayLength, String};
 use serde_json_core::de::{from_slice, Error as DError};
 use serde_json_core::ser::{to_string, Error as SError};
@@ -38,14 +39,14 @@ pub struct Servo {
     pub color: Color,
 }
 
-impl Servo {
+impl Jsonizable for Servo {
     /// Désérialisation d'un JSON en `Servo`
-    pub fn from_json_slice(slice: &[u8]) -> Result<Self, DError> {
+    fn from_json_slice(slice: &[u8]) -> Result<Self, DError> {
         from_slice(slice)
     }
 
     /// Sérialisation d'un `Servo` en JSON
-    pub fn to_string<B>(&self) -> Result<String<B>, SError>
+    fn to_string<B>(&self) -> Result<String<B>, SError>
     where
         B: ArrayLength<u8>,
     {

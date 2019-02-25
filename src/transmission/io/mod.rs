@@ -1,5 +1,10 @@
 //! Décrit l'API pour interagir avec la carte IO
 
+use crate::transmission::Jsonizable;
+use heapless::{ArrayLength, String};
+use serde_json_core::de::{from_slice, Error as DError};
+use serde_json_core::ser::{to_string, Error as SError};
+
 /// L'état d'un interrupteur : en attente d'activation, ou activé
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum TriggerState {
@@ -27,4 +32,19 @@ pub struct IO {
     tirette: TriggerState,
     /// L'état des vannes
     vannes: [IOState; 8],
+}
+
+impl Jsonizable for IO {
+    /// Désérialisation d'un JSON en `Servo`
+    fn from_json_slice(slice: &[u8]) -> Result<Self, DError> {
+        from_slice(slice)
+    }
+
+    /// Sérialisation d'un `Servo` en JSON
+    fn to_string<B>(&self) -> Result<String<B>, SError>
+    where
+        B: ArrayLength<u8>,
+    {
+        to_string(self)
+    }
 }
