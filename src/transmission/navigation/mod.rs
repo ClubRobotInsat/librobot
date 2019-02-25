@@ -1,3 +1,5 @@
+//! Décrit l'API pour interagir avec la carte déplacement
+
 use crate::transmission::Jsonizable;
 use heapless::{ArrayLength, String};
 use serde_json_core::de::{from_slice, Error as DError};
