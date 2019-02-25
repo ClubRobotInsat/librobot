@@ -190,8 +190,9 @@ where
         self.odometry.get_position()
     }
 
-    // TODO moche
-    pub fn forward(&mut self, distance:MilliMeter) {
+    /// Fais avancer le robot
+    /// FIXME
+    pub fn forward(&mut self, distance: MilliMeter) {
         self.pid.forward(distance);
     }
 }
@@ -200,7 +201,5 @@ where
 mod test {
 
     #[test]
-    fn test_full_session() {
-
-    }
+    fn test_full_session() {}
 }

@@ -87,7 +87,8 @@ impl RealWorldPid {
 
     /// Ordonne au robot de tourner de `angle` (en milliradians)
     pub(crate) fn rotate(&mut self, angle: i64) {
-        let turn_distance = angle as f32 * self.inter_axial_length.as_millimeters() as f32 * 0.001 * 0.5;
+        let turn_distance =
+            angle as f32 * self.inter_axial_length.as_millimeters() as f32 * 0.001 * 0.5;
         let distance_per_wheel_turn =
             self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = turn_distance / distance_per_wheel_turn;
@@ -320,7 +321,7 @@ mod test {
     use std::cell::Cell;
     use std::rc::Rc;
 
-    use crate::navigation::pid::{Command, Pid, RealWorldPid, PIDParameters};
+    use crate::navigation::pid::{Command, PIDParameters, Pid, RealWorldPid};
     use crate::units::MilliMeter;
     use embedded_hal::Qei;
     use qei::QeiManager;
@@ -528,18 +529,8 @@ mod test {
 
         let (goall, goalr) = pid.internal_pid.get_qei_goal();
 
-        assert!(
-            (goall - 543).abs() <= 1,
-            "{} should be {}",
-            goall,
-            543
-        );
-        assert!(
-            (goalr - 543).abs() <= 1,
-            "{} should be {}",
-            goalr,
-            543
-        );
+        assert!((goall - 543).abs() <= 1, "{} should be {}", goall, 543);
+        assert!((goalr - 543).abs() <= 1, "{} should be {}", goalr, 543);
     }
 
     #[test]
@@ -559,17 +550,7 @@ mod test {
 
         let (goall, goalr) = pid.internal_pid.get_qei_goal();
 
-        assert!(
-            (goall + 640).abs() <= 1,
-            "{} should be {}",
-            goall,
-            -640
-        );
-        assert!(
-            (goalr - 640).abs() <= 1,
-            "{} should be {}",
-            goalr,
-            640
-        );
+        assert!((goall + 640).abs() <= 1, "{} should be {}", goall, -640);
+        assert!((goalr - 640).abs() <= 1, "{} should be {}", goalr, 640);
     }
 }
