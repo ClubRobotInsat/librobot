@@ -28,8 +28,13 @@ pub enum IOState {
 pub struct IO {
     /// L'état des pompes (elles sont sur le même pin, même si il y en a 2)
     pumps: IOState,
+
+    /// L'intensité tirée par les pompes (plus c'est elevé, plus on rencontre de résistance pour pomper)
+    pump_intensity: u16,
+
     /// L'état de la tirette
     tirette: TriggerState,
+
     /// L'état des vannes
     valves: [IOState; 8],
 }
