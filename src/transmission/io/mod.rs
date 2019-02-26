@@ -27,16 +27,16 @@ pub enum IOState {
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub struct IO {
     /// L'état des pompes (elles sont sur le même pin, même si il y en a 2)
-    pumps: IOState,
+    pub pumps: IOState,
 
     /// L'intensité tirée par les pompes (plus c'est elevé, plus on rencontre de résistance pour pomper)
-    pump_intensity: u16,
+    pub pump_intensity: u16,
 
     /// L'état de la tirette
-    tirette: TriggerState,
+    pub tirette: TriggerState,
 
     /// L'état des vannes
-    valves: [IOState; 8],
+    pub valves: [IOState; 8],
 }
 
 impl Jsonizable for IO {
