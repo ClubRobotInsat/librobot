@@ -112,7 +112,7 @@ impl<L, R> RealWorldPid<L, R>
     /// * les valeurs physiques du robot :
     ///     * distance interaxe en mm
     ///     * rayon d'une roue codeuse en mm
-    pub(crate) fn new(
+    pub fn new(
         qei_left: QeiManager<L>,
         qei_right: QeiManager<R>,
         params: &PIDParameters,
