@@ -179,7 +179,7 @@ impl<L, R> RealWorldPid<L, R>
     /// Ordonne au robot de tourner de `angle` (en milliradians)
     pub fn rotate(&mut self, angle: i64) {
         let turn_distance =
-            angle as f32 * self.params.inter_axial_length.as_millimeters() as f32 * 0.001 * 0.5;
+            angle as f32 * self.params.inter_axial_length.as_millimeters() as f32 * 0.001;
         let distance_per_wheel_turn =
             self.params.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = turn_distance / distance_per_wheel_turn;

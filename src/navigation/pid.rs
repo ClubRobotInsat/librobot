@@ -146,8 +146,8 @@ impl Pid {
     /// Renvoie le but du PID en ticks de roue codeuse sous la forme (gauche,droite).
     pub fn get_qei_goal(&self) -> (i64, i64) {
         (
-            self.position_order + self.orientation_order / 2,
             self.position_order - self.orientation_order / 2,
+            self.position_order + self.orientation_order / 2,
         )
     }
 }
