@@ -47,9 +47,12 @@ pub struct Coord {
     pub y: MilliMeter,
 }
 
-/// Le PID du robot basé sur des unités du monde physique, il contient :
+/// Le module central de la navigation, qui permet de controller le robot avec les unités du monde
+/// physique, et d'avoir un retour sur la position du robot. Il contient:
 /// * un PID basé sur les ticks de roue codeuse
 /// * les informations nécessaires pour passer du monde des ticks de roue codeuses au monde physique
+/// * les qei gauche et droite correspondant aux deux roues codeuses
+/// * la commande à appliquer aux moteurs gauche et droit
 pub struct RealWorldPid<L, R>
 where
     L: Qei<Count = u16>,
