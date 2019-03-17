@@ -64,7 +64,7 @@ impl Odometry {
         let dist_right = (right_ticks - self.right_ticks) as f32 * distance_per_wheel_turn / params.ticks_per_turn as f32;
 
         let dist_diff = (dist_left + dist_right) / 2.0;
-        let angle_diff = (dist_left - dist_right) * params.inter_axial_length.as_millimeters() as f32 / 1000.0;
+        let angle_diff = (dist_left - dist_right) * 1000.0 / params.inter_axial_length.as_millimeters() as f32;
 
         let anglef = self.angle / 1000.0;
         let (sin, cos) = anglef.sin_cos();
@@ -102,28 +102,6 @@ mod test {
             max_output: 100,
         };
 
-        odom.update(1024, 1024, &params);
-        let robot_pos = odom.get_position();
-
-        assert_eq!(robot_pos.x, MilliMeter(195));
-        assert_eq!(robot_pos.y, MilliMeter(0));
-    }
-
-    #[test]
-    fn odom_forward_slow_motion() {
-        let mut odom = Odometry::new();
-
-        let params = PIDParameters {
-            coder_radius: MilliMeter(31),
-            ticks_per_turn: 1024,
-            inter_axial_length: MilliMeter(223),
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
-        };
-
         for i in 0..1025 {
             odom.update(i, i, &params);
         }
@@ -148,7 +126,9 @@ mod test {
             max_output: 100,
         };
 
-        odom.update(-1024, -1024, &params);
+        for i in 0..1025 {
+            odom.update(-i, -i, &params);
+        }
         let robot_pos = odom.get_position();
 
         assert_eq!(robot_pos.x, MilliMeter(-195));
@@ -156,7 +136,7 @@ mod test {
     }
 
     #[test]
-    fn odom_angle_custom() {
+    fn odom_forward_with_start_angle() {
         let mut odom = Odometry::new();
 
         let params = PIDParameters {
@@ -177,12 +157,65 @@ mod test {
             },
             3141 / 4,
         );
-        odom.update(1024, 1024, &params);
 
+        for i in 0..1025 {
+            odom.update(i, i, &params);
+        }
         let robot_pos = odom.get_position();
 
         assert_eq!(robot_pos.x, MilliMeter(138));
         assert_eq!(robot_pos.y, MilliMeter(138));
+    }
+
+    #[test]
+    fn odom_turn_self() {
+        let mut odom = Odometry::new();
+
+        let params = PIDParameters {
+            coder_radius: MilliMeter(31),
+            ticks_per_turn: 1024,
+            inter_axial_length: MilliMeter(223),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        };
+
+        for i in 0..921 {
+            odom.update(i, -i, &params);
+        }
+
+        let robot_pos = odom.get_position();
+
+        assert!((robot_pos.x.as_millimeters() - 0).abs() <= 1);
+        assert!((robot_pos.y.as_millimeters() - 0).abs() <= 1);
+        assert!((odom.get_angle() - 1571).abs() <= 3);
+    }
+
+    #[test]
+    fn odom_turn_right() {
+        let mut odom = Odometry::new();
+
+        let params = PIDParameters {
+            coder_radius: MilliMeter(31),
+            ticks_per_turn: 1024,
+            inter_axial_length: MilliMeter(223),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        };
+
+        for i in 0..1843 {
+            odom.update(i, 0, &params);
+        }
+
+        let robot_pos = odom.get_position();
+
+        assert!((robot_pos.x.as_millimeters() - 111).abs() <= 1);
+        assert!((robot_pos.y.as_millimeters() - 111).abs() <= 1);
     }
 
     // #[test]
