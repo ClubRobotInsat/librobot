@@ -49,6 +49,11 @@ impl Odometry {
         }
     }
 
+    /// Retourne l'angle du robot en milliradians
+    pub(crate) fn get_angle(&self) -> i64 {
+        self.angle.round() as i64
+    }
+
     /// Met à jour l'odometrie à partir de la variation des ticks
     /// de chaque roue codeuse
     pub(crate) fn update(&mut self, left_ticks: i64, right_ticks: i64, params: &PIDParameters) {

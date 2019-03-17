@@ -154,6 +154,11 @@ impl<L, R> RealWorldPid<L, R>
         self.odometry.get_position()
     }
 
+    /// Renvoie l'angle en milliradians
+    pub fn get_angle(&self) -> i64 {
+        self.odometry.get_angle()
+    }
+
     /// Renvoie les ticks comptés par les roues codeuses
     pub fn get_qei_ticks(&self) -> (i64, i64) {
         (self.qei.0.count(), self.qei.1.count())
