@@ -55,11 +55,11 @@ impl Odometry {
         let distance_per_wheel_turn =
             params.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
 
-        let dist_left = (left_ticks - self.left_ticks) as f32 * distance_per_wheel_turn / 1024.0;
-        let dist_right = (right_ticks - self.right_ticks) as f32 * distance_per_wheel_turn / 1024.0;
+        let dist_left = (left_ticks - self.left_ticks) as f32 * distance_per_wheel_turn / params.ticks_per_turn as f32;
+        let dist_right = (right_ticks - self.right_ticks) as f32 * distance_per_wheel_turn / params.ticks_per_turn as f32;
 
         let dist_diff = (dist_left + dist_right) / 2.0;
-        let angle_diff = dist_left - dist_right;
+        let angle_diff = (dist_left - dist_right) * params.inter_axial_length.as_millimeters() as f32 / 1000.0;
 
         let anglef = self.angle / 1000.0;
         let (sin, cos) = anglef.sin_cos();
@@ -88,6 +88,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
             pos_kd: 1.0,
@@ -109,6 +110,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
             pos_kd: 1.0,
@@ -132,6 +134,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
             pos_kd: 1.0,
@@ -153,6 +156,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
             pos_kd: 1.0,
@@ -182,6 +186,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
             pos_kd: 1.0,

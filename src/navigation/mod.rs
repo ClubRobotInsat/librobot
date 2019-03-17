@@ -70,6 +70,8 @@ where
 pub struct PIDParameters {
     /// Le rayon d'une roue codeuse
     pub coder_radius: MilliMeter,
+    /// Le nombre de ticks d'une roue codeuse
+    pub ticks_per_turn: u16,
     /// La distance entre les roues codeuses
     pub inter_axial_length: MilliMeter,
     /// Le coefficient proportionnel sur la position
@@ -162,7 +164,7 @@ impl<L, R> RealWorldPid<L, R>
         let distance_per_wheel_turn =
             self.params.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
-        let ticks = 1024.0 * nb_wheel_turn;
+        let ticks = self.params.ticks_per_turn as f32 * nb_wheel_turn;
         self.internal_pid
             .increment_position_goal(ticks.round() as i64);
     }
@@ -172,7 +174,7 @@ impl<L, R> RealWorldPid<L, R>
         let distance_per_wheel_turn =
             self.params.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
-        let ticks = 1024.0 * nb_wheel_turn;
+        let ticks = self.params.ticks_per_turn as f32 * nb_wheel_turn;
         self.internal_pid.decrement_position_goal(ticks as i64);
     }
 
@@ -183,7 +185,7 @@ impl<L, R> RealWorldPid<L, R>
         let distance_per_wheel_turn =
             self.params.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
         let nb_wheel_turn = turn_distance / distance_per_wheel_turn;
-        let ticks = 1024.0 * nb_wheel_turn;
+        let ticks = self.params.ticks_per_turn as f32 * nb_wheel_turn;
         self.internal_pid.increment_orientation_goal(ticks as i64);
     }
 }
@@ -200,6 +202,7 @@ mod test {
     fn real_world_pid_forward() {
         let pid_parameters = PIDParameters {
             coder_radius: MilliMeter(30),
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(300),
             pos_kp: 1.0,
             pos_kd: 1.0,
@@ -226,6 +229,7 @@ mod test {
     fn real_world_pid_rotation() {
         let pid_parameters = PIDParameters {
             coder_radius: MilliMeter(30),
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(300),
             pos_kp: 1.0,
             pos_kd: 1.0,
