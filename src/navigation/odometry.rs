@@ -45,7 +45,7 @@ impl Odometry {
     pub(crate) fn get_position(&self) -> Coord {
         Coord {
             x: MilliMeter(self.x.round() as i64),
-            y: MilliMeter(self.y.round() as i64)
+            y: MilliMeter(self.y.round() as i64),
         }
     }
 
@@ -57,14 +57,12 @@ impl Odometry {
     /// Met à jour l'odometrie à partir de la variation des ticks
     /// de chaque roue codeuse
     pub(crate) fn update(&mut self, left_ticks: i64, right_ticks: i64, params: &PIDParameters) {
-        let distance_per_wheel_turn =
-            params.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
-
-        let dist_left = (left_ticks - self.left_ticks) as f32 * distance_per_wheel_turn / params.ticks_per_turn as f32;
-        let dist_right = (right_ticks - self.right_ticks) as f32 * distance_per_wheel_turn / params.ticks_per_turn as f32;
+        let (dist_left, dist_right) =
+            params.ticks_to_distance(left_ticks - self.left_ticks, right_ticks - self.right_ticks);
 
         let dist_diff = (dist_left + dist_right) / 2.0;
-        let angle_diff = (dist_left - dist_right) * 1000.0 / params.inter_axial_length.as_millimeters() as f32;
+        let angle_diff =
+            (dist_left - dist_right) * 1000.0 / params.inter_axial_length.as_millimeters() as f32;
 
         let anglef = self.angle / 1000.0;
         let (sin, cos) = anglef.sin_cos();
@@ -93,6 +91,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_right_ratio: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -117,6 +116,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_right_ratio: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -141,6 +141,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_right_ratio: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -173,6 +174,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_right_ratio: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -188,9 +190,24 @@ mod test {
 
         let robot_pos = odom.get_position();
 
-        assert!((robot_pos.x.as_millimeters() - 0).abs() <= 1);
-        assert!((robot_pos.y.as_millimeters() - 0).abs() <= 1);
-        assert!((odom.get_angle() - 1571).abs() <= 3);
+        assert!(
+            (robot_pos.x.as_millimeters() - 0).abs() <= 1,
+            "{} should be {}",
+            robot_pos.x.as_millimeters(),
+            0
+        );
+        assert!(
+            (robot_pos.y.as_millimeters() - 0).abs() <= 1,
+            "{} should be {}",
+            robot_pos.y.as_millimeters(),
+            0
+        );
+        assert!(
+            (odom.get_angle() - 1571).abs() <= 3,
+            "{} should be {}",
+            odom.get_angle(),
+            1571
+        );
     }
 
     #[test]
@@ -199,6 +216,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_right_ratio: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -214,8 +232,18 @@ mod test {
 
         let robot_pos = odom.get_position();
 
-        assert!((robot_pos.x.as_millimeters() - 111).abs() <= 1);
-        assert!((robot_pos.y.as_millimeters() - 111).abs() <= 1);
+        assert!(
+            (robot_pos.x.as_millimeters() - 111).abs() <= 1,
+            "{} should be {}",
+            robot_pos.x.as_millimeters(),
+            111
+        );
+        assert!(
+            (robot_pos.y.as_millimeters() - 111).abs() <= 1,
+            "{} should be {}",
+            robot_pos.y.as_millimeters(),
+            111
+        );
     }
 
     // #[test]
@@ -224,6 +252,7 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_right_ratio: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,

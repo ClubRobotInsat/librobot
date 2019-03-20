@@ -21,8 +21,8 @@
 //!+-----------------------+
 //! ```
 
-mod odometry;
 mod motor;
+mod odometry;
 mod pid;
 
 pub use self::motor::*;
@@ -70,6 +70,11 @@ where
 pub struct PIDParameters {
     /// Le rayon d'une roue codeuse
     pub coder_radius: MilliMeter,
+    /// Coefficient pour corriger la différence de diamètre entre la roue gauche
+    /// et la roue droite. Une valeur > 1 signifie que la roue droite a un plus
+    /// grand diamètre que la roue gauche et qu'elle parcourt plus de distance
+    /// en un seul tour.
+    pub left_right_ratio: f32,
     /// Le nombre de ticks d'une roue codeuse
     pub ticks_per_turn: u16,
     /// La distance entre les roues codeuses
@@ -87,9 +92,9 @@ pub struct PIDParameters {
 }
 
 impl<L, R> core::fmt::Debug for RealWorldPid<L, R>
-    where
-        L: Qei<Count = u16>,
-        R: Qei<Count = u16>,
+where
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
 {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(
@@ -102,11 +107,10 @@ impl<L, R> core::fmt::Debug for RealWorldPid<L, R>
 }
 
 impl<L, R> RealWorldPid<L, R>
-    where
-        L: Qei<Count = u16>,
-        R: Qei<Count = u16>,
+where
+    L: Qei<Count = u16>,
+    R: Qei<Count = u16>,
 {
-
     /// Crée un nouveau PID à partir de :
     /// *  2 struct de `embedded_hal` wrappés dans des `QeiManager`représentant les encodeurs quadratiques gauche et droite
     /// * les coefficients de l'asservissement,
@@ -114,11 +118,7 @@ impl<L, R> RealWorldPid<L, R>
     /// * les valeurs physiques du robot :
     ///     * distance interaxe en mm
     ///     * rayon d'une roue codeuse en mm
-    pub fn new(
-        qei_left: QeiManager<L>,
-        qei_right: QeiManager<R>,
-        params: &PIDParameters,
-    ) -> Self {
+    pub fn new(qei_left: QeiManager<L>, qei_right: QeiManager<R>, params: &PIDParameters) -> Self {
         RealWorldPid {
             internal_pid: Pid::new(
                 params.pos_kp,
@@ -166,32 +166,62 @@ impl<L, R> RealWorldPid<L, R>
 
     /// Ordonne au robot d'avancer de `distance`
     pub fn forward(&mut self, distance: MilliMeter) {
-        let distance_per_wheel_turn =
-            self.params.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
-        let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
-        let ticks = self.params.ticks_per_turn as f32 * nb_wheel_turn;
-        self.internal_pid
-            .increment_position_goal(ticks.round() as i64);
+        let (ticks, _) = self.params.distance_to_ticks(distance, MilliMeter(0));
+        self.internal_pid.increment_position_goal(ticks);
     }
 
     /// Ordonne au robot de reculer de `distance`
     pub fn backward(&mut self, distance: MilliMeter) {
-        let distance_per_wheel_turn =
-            self.params.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
-        let nb_wheel_turn = distance.as_millimeters() as f32 / distance_per_wheel_turn;
-        let ticks = self.params.ticks_per_turn as f32 * nb_wheel_turn;
-        self.internal_pid.decrement_position_goal(ticks as i64);
+        let (ticks, _) = self.params.distance_to_ticks(distance, MilliMeter(0));
+        self.internal_pid.decrement_position_goal(ticks);
     }
 
     /// Ordonne au robot de tourner de `angle` (en milliradians)
     pub fn rotate(&mut self, angle: i64) {
         let turn_distance =
             angle as f32 * self.params.inter_axial_length.as_millimeters() as f32 * 0.001;
+        let (ticks, _) = self.params.distancef_to_ticks(turn_distance, 0.);
+        self.internal_pid.increment_orientation_goal(ticks);
+    }
+}
+
+impl PIDParameters {
+    /// Convertit les ticks des QEI en distance parcourue par les roues codeuses (en mm)
+    pub fn ticks_to_distance(&self, left_ticks: i64, right_ticks: i64) -> (f32, f32) {
         let distance_per_wheel_turn =
-            self.params.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
-        let nb_wheel_turn = turn_distance / distance_per_wheel_turn;
-        let ticks = self.params.ticks_per_turn as f32 * nb_wheel_turn;
-        self.internal_pid.increment_orientation_goal(ticks as i64);
+            self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
+
+        (
+            left_ticks as f32 * distance_per_wheel_turn / self.ticks_per_turn as f32,
+            right_ticks as f32 * distance_per_wheel_turn * self.left_right_ratio
+                / self.ticks_per_turn as f32,
+        )
+    }
+
+    /// Convertit la distance parcourue en mm par chaque roue codeuse, en nombre de ticks
+    /// observé par chaque QEI.
+    pub(crate) fn distancef_to_ticks(&self, left_distance: f32, right_distance: f32) -> (i64, i64) {
+        let distance_per_wheel_turn =
+            self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
+
+        (
+            (left_distance * self.ticks_per_turn as f32 / distance_per_wheel_turn) as i64,
+            (right_distance * self.ticks_per_turn as f32
+                / (distance_per_wheel_turn * self.left_right_ratio)) as i64,
+        )
+    }
+
+    /// Convertit la distance parcourue par chaque roue codeuse, en nombre de ticks
+    /// observé par chaque QEI.
+    pub fn distance_to_ticks(
+        &self,
+        left_distance: MilliMeter,
+        right_distance: MilliMeter,
+    ) -> (i64, i64) {
+        self.distancef_to_ticks(
+            left_distance.as_millimeters() as f32,
+            right_distance.as_millimeters() as f32,
+        )
     }
 }
 
@@ -199,14 +229,69 @@ impl<L, R> RealWorldPid<L, R>
 mod test {
     use qei::QeiManager;
 
-    use super::{PIDParameters, RealWorldPid};
     use super::motor::test::DummyMotor;
+    use super::{PIDParameters, RealWorldPid};
     use crate::units::MilliMeter;
+
+    #[test]
+    fn test_ticks_to_distance() {
+        let pid_parameters = PIDParameters {
+            coder_radius: MilliMeter(30),
+            left_right_ratio: 0.5,
+            ticks_per_turn: 1024,
+            inter_axial_length: MilliMeter(300),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        };
+
+        let (left_dist, right_dist) = pid_parameters.ticks_to_distance(1280, 1280);
+        assert!(
+            (left_dist - 235.6).abs() < 0.2,
+            "{} should be 235.6",
+            left_dist
+        );
+        assert!(
+            (right_dist - 117.8).abs() < 0.2,
+            "{} should be 117.8",
+            right_dist
+        );
+    }
+
+    #[test]
+    fn test_distance_to_ticks() {
+        let pid_parameters = PIDParameters {
+            coder_radius: MilliMeter(30),
+            left_right_ratio: 0.5,
+            ticks_per_turn: 1024,
+            inter_axial_length: MilliMeter(300),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        };
+        let (left_ticks, right_ticks) =
+            pid_parameters.distance_to_ticks(MilliMeter(235), MilliMeter(235));
+        assert!(
+            (left_ticks - 1276).abs() <= 1,
+            "{} should be 1276",
+            left_ticks
+        );
+        assert!(
+            (right_ticks - 2552).abs() <= 1,
+            "{} should be 1276",
+            right_ticks
+        );
+    }
 
     #[test]
     fn real_world_pid_forward() {
         let pid_parameters = PIDParameters {
             coder_radius: MilliMeter(30),
+            left_right_ratio: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(300),
             pos_kp: 1.0,
@@ -234,6 +319,7 @@ mod test {
     fn real_world_pid_rotation() {
         let pid_parameters = PIDParameters {
             coder_radius: MilliMeter(30),
+            left_right_ratio: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(300),
             pos_kp: 1.0,
@@ -256,7 +342,7 @@ mod test {
         assert!((goall + 640).abs() <= 1, "{} should be {}", goall, -640);
         assert!((goalr - 640).abs() <= 1, "{} should be {}", goalr, 640);
     }
-    
+
     #[test]
     fn test_full_session() {}
 }

@@ -1,4 +1,3 @@
-
 use core::fmt::{Debug, Display, Formatter, Result};
 
 use embedded_hal::digital::OutputPin;
@@ -34,18 +33,18 @@ impl Display for Command {
 
 /// Un moteur avec ses deux broches : vitesse et direction.
 pub struct Motor<MOT, DIR>
-    where
-        MOT: PwmPin<Duty = u16>,
-        DIR: OutputPin,
+where
+    MOT: PwmPin<Duty = u16>,
+    DIR: OutputPin,
 {
     pwm: MOT,
     dir: DIR,
 }
 
 impl<MOT, DIR> Debug for Motor<MOT, DIR>
-    where
-        MOT: PwmPin<Duty = u16>,
-        DIR: OutputPin,
+where
+    MOT: PwmPin<Duty = u16>,
+    DIR: OutputPin,
 {
     fn fmt(&self, f: &mut Formatter) -> Result {
         write!(
@@ -57,9 +56,9 @@ impl<MOT, DIR> Debug for Motor<MOT, DIR>
 }
 
 impl<MOT, DIR> Motor<MOT, DIR>
-    where
-        MOT: PwmPin<Duty = u16>,
-        DIR: OutputPin,
+where
+    MOT: PwmPin<Duty = u16>,
+    DIR: OutputPin,
 {
     /// Crée une nouvelle structure de gestion moteur à partir d'une broche de direction et d'une
     /// broche de PWM :
