@@ -20,6 +20,13 @@ impl Command {
             Command::Back(val) => *val,
         }
     }
+
+    pub fn invert(&self) -> Command {
+        match self {
+            Command::Front(val) => Command::Back(*val),
+            Command::Back(val) => Command::Front(*val),
+        }
+    }
 }
 
 impl Display for Command {
