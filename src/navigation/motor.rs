@@ -21,6 +21,7 @@ impl Command {
         }
     }
 
+    /// Retourne une commande de la même valeur mais de sens opposé
     pub fn invert(&self) -> Command {
         match self {
             Command::Front(val) => Command::Back(*val),
