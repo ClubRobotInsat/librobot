@@ -70,11 +70,12 @@ where
 pub struct PIDParameters {
     /// Le rayon d'une roue codeuse
     pub coder_radius: MilliMeter,
-    /// Coefficient pour corriger la différence de diamètre entre la roue gauche
-    /// et la roue droite. Une valeur > 1 signifie que la roue droite a un plus
-    /// grand diamètre que la roue gauche et qu'elle parcourt plus de distance
-    /// en un seul tour.
-    pub left_right_ratio: f32,
+    /// Coefficient de correction de la roue codeuse gauche, notamment
+    /// pour pouvoir supporter le décompte en sens inverse
+    pub left_wheel_coef: f32,
+    /// Coefficient de correction de la roue codeuse droite, pour corriger
+    /// le sens et l'écart de diamètre entre les deux roues.
+    pub right_wheel_coef: f32,
     /// Le nombre de ticks d'une roue codeuse
     pub ticks_per_turn: u16,
     /// La distance entre les roues codeuses
@@ -192,8 +193,9 @@ impl PIDParameters {
             self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
 
         (
-            left_ticks as f32 * distance_per_wheel_turn / self.ticks_per_turn as f32,
-            right_ticks as f32 * distance_per_wheel_turn * self.left_right_ratio
+            left_ticks as f32 * distance_per_wheel_turn * self.left_wheel_coef
+                / self.ticks_per_turn as f32,
+            right_ticks as f32 * distance_per_wheel_turn * self.right_wheel_coef
                 / self.ticks_per_turn as f32,
         )
     }
@@ -205,9 +207,10 @@ impl PIDParameters {
             self.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
 
         (
-            (left_distance * self.ticks_per_turn as f32 / distance_per_wheel_turn) as i64,
+            (left_distance * self.ticks_per_turn as f32
+                / (distance_per_wheel_turn * self.left_wheel_coef)) as i64,
             (right_distance * self.ticks_per_turn as f32
-                / (distance_per_wheel_turn * self.left_right_ratio)) as i64,
+                / (distance_per_wheel_turn * self.right_wheel_coef)) as i64,
         )
     }
 
@@ -237,7 +240,8 @@ mod test {
     fn test_ticks_to_distance() {
         let pid_parameters = PIDParameters {
             coder_radius: MilliMeter(30),
-            left_right_ratio: 0.5,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 0.5,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(300),
             pos_kp: 1.0,
@@ -264,7 +268,8 @@ mod test {
     fn test_distance_to_ticks() {
         let pid_parameters = PIDParameters {
             coder_radius: MilliMeter(30),
-            left_right_ratio: 0.5,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 0.5,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(300),
             pos_kp: 1.0,
@@ -291,7 +296,8 @@ mod test {
     fn real_world_pid_forward() {
         let pid_parameters = PIDParameters {
             coder_radius: MilliMeter(30),
-            left_right_ratio: 1.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(300),
             pos_kp: 1.0,
@@ -319,7 +325,8 @@ mod test {
     fn real_world_pid_rotation() {
         let pid_parameters = PIDParameters {
             coder_radius: MilliMeter(30),
-            left_right_ratio: 1.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(300),
             pos_kp: 1.0,

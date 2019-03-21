@@ -91,7 +91,8 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
-            left_right_ratio: 1.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -116,7 +117,8 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
-            left_right_ratio: 1.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -141,7 +143,8 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
-            left_right_ratio: 1.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -174,7 +177,8 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
-            left_right_ratio: 1.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -216,7 +220,8 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
-            left_right_ratio: 1.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
@@ -252,7 +257,8 @@ mod test {
 
         let params = PIDParameters {
             coder_radius: MilliMeter(31),
-            left_right_ratio: 1.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
             pos_kp: 1.0,
