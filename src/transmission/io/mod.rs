@@ -55,7 +55,7 @@ pub struct Pneumatic {
     pub pump: [IOState;2],
 
     /// L'intensité tirée par les pompes (plus c'est elevé, plus on rencontre de résistance pour pomper)
-    pub pump_intensity: u16,
+    pub pump_intensity: [u16;2],
 
     /// L'état des vannes
     pub valves: [IOState; 6],
