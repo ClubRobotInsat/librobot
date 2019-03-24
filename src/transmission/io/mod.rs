@@ -52,7 +52,7 @@ pub struct IO {
 /// L'état du robot du point de vue pneumatique
 pub struct Pneumatic {
     /// L'état des pompes (elles sont sur le même pin, même si il y en a 2)
-    pub pumps: IOState,
+    pub pump: [IOState;2],
 
     /// L'intensité tirée par les pompes (plus c'est elevé, plus on rencontre de résistance pour pomper)
     pub pump_intensity: u16,
