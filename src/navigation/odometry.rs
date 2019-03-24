@@ -1,6 +1,6 @@
 use core::f32;
 
-use crate::navigation::{Coord, RobotConstants};
+use crate::navigation::{Coord, PIDParameters};
 use crate::units::MilliMeter;
 
 #[allow(unused_imports)]
@@ -14,10 +14,12 @@ pub(crate) struct Odometry {
     left_ticks: i64,
     /// ticks à droite
     right_ticks: i64,
-    /// Coordonnees du robot
-    robot_pos: Coord,
+    /// Coordonnee en x du robot
+    x: f32,
+    /// Coordonnee en y du robot
+    y: f32,
     /// Angle du robot en millirad
-    angle: i64,
+    angle: f32,
 }
 
 impl Odometry {
@@ -27,45 +29,48 @@ impl Odometry {
         Odometry {
             left_ticks: 0,
             right_ticks: 0,
-            robot_pos: Coord {
-                x: MilliMeter(0),
-                y: MilliMeter(0),
-            },
-            angle: 0,
+            x: 0.,
+            y: 0.,
+            angle: 0.,
         }
     }
 
     /// Définit les informations de position du robot.
     pub(crate) fn set_position(&mut self, new_pos: Coord, new_angle: i64) {
-        self.robot_pos = new_pos;
-        self.angle = new_angle;
+        self.x = new_pos.x.as_millimeters() as f32;
+        self.y = new_pos.y.as_millimeters() as f32;
+        self.angle = new_angle as f32;
     }
 
     pub(crate) fn get_position(&self) -> Coord {
-        self.robot_pos
+        Coord {
+            x: MilliMeter(self.x.round() as i64),
+            y: MilliMeter(self.y.round() as i64),
+        }
+    }
+
+    /// Retourne l'angle du robot en milliradians
+    pub(crate) fn get_angle(&self) -> i64 {
+        self.angle.round() as i64
     }
 
     /// Met à jour l'odometrie à partir de la variation des ticks
     /// de chaque roue codeuse
-    pub(crate) fn update(&mut self, left_ticks: i64, right_ticks: i64, constants: &RobotConstants) {
-        let distance_per_wheel_turn =
-            constants.coder_radius.as_millimeters() as f32 * 2.0 * core::f32::consts::PI;
-
-        let dist_left = (left_ticks - self.left_ticks) as f32 * distance_per_wheel_turn / 1024.0;
-        let dist_right = (right_ticks - self.right_ticks) as f32 * distance_per_wheel_turn / 1024.0;
+    pub(crate) fn update(&mut self, left_ticks: i64, right_ticks: i64, params: &PIDParameters) {
+        let (dist_left, dist_right) =
+            params.ticks_to_distance(left_ticks - self.left_ticks, right_ticks - self.right_ticks);
 
         let dist_diff = (dist_left + dist_right) / 2.0;
-        let angle_diff = dist_left - dist_right;
+        let angle_diff =
+            (dist_left - dist_right) * 1000.0 / params.inter_axial_length.as_millimeters() as f32;
 
-        let anglef = self.angle as f32 / 1000.0;
+        let anglef = self.angle / 1000.0;
         let (sin, cos) = anglef.sin_cos();
         let dxf = dist_diff * cos;
         let dyf = dist_diff * sin;
-        self.robot_pos = Coord {
-            x: MilliMeter(self.robot_pos.x.as_millimeters() + dxf.round() as i64),
-            y: MilliMeter(self.robot_pos.y.as_millimeters() + dyf.round() as i64),
-        };
-        self.angle += angle_diff.round() as i64;
+        self.x += dxf;
+        self.y += dyf;
+        self.angle += angle_diff;
 
         self.left_ticks = left_ticks;
         self.right_ticks = right_ticks;
@@ -78,45 +83,75 @@ mod test {
     use crate::units::MilliMeter;
 
     use crate::navigation::odometry::*;
-    use crate::navigation::{Coord, RobotConstants};
+    use crate::navigation::{Coord, PIDParameters};
 
     #[test]
     fn odom_forward() {
         let mut odom = Odometry::new();
 
-        let constants = RobotConstants {
+        let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
         };
 
-        odom.update(1024, 1024, &constants);
+        for i in 0..1025 {
+            odom.update(i, i, &params);
+        }
+        let robot_pos = odom.get_position();
 
-        assert_eq!(odom.robot_pos.x, MilliMeter(195));
-        assert_eq!(odom.robot_pos.y, MilliMeter(0));
+        assert_eq!(robot_pos.x, MilliMeter(195));
+        assert_eq!(robot_pos.y, MilliMeter(0));
     }
 
     #[test]
     fn odom_backward() {
         let mut odom = Odometry::new();
 
-        let constants = RobotConstants {
+        let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
         };
 
-        odom.update(-1024, -1024, &constants);
+        for i in 0..1025 {
+            odom.update(-i, -i, &params);
+        }
+        let robot_pos = odom.get_position();
 
-        assert_eq!(odom.robot_pos.x, MilliMeter(-195));
-        assert_eq!(odom.robot_pos.y, MilliMeter(0));
+        assert_eq!(robot_pos.x, MilliMeter(-195));
+        assert_eq!(robot_pos.y, MilliMeter(0));
     }
 
     #[test]
-    fn odom_angle_custom() {
+    fn odom_forward_with_start_angle() {
         let mut odom = Odometry::new();
 
-        let constants = RobotConstants {
+        let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
         };
 
         odom.set_position(
@@ -126,24 +161,116 @@ mod test {
             },
             3141 / 4,
         );
-        odom.update(1024, 1024, &constants);
 
-        assert_eq!(odom.robot_pos.x, MilliMeter(138));
-        assert_eq!(odom.robot_pos.y, MilliMeter(138));
+        for i in 0..1025 {
+            odom.update(i, i, &params);
+        }
+        let robot_pos = odom.get_position();
+
+        assert_eq!(robot_pos.x, MilliMeter(138));
+        assert_eq!(robot_pos.y, MilliMeter(138));
+    }
+
+    #[test]
+    fn odom_turn_self() {
+        let mut odom = Odometry::new();
+
+        let params = PIDParameters {
+            coder_radius: MilliMeter(31),
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
+            ticks_per_turn: 1024,
+            inter_axial_length: MilliMeter(223),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        };
+
+        for i in 0..921 {
+            odom.update(i, -i, &params);
+        }
+
+        let robot_pos = odom.get_position();
+
+        assert!(
+            (robot_pos.x.as_millimeters() - 0).abs() <= 1,
+            "{} should be {}",
+            robot_pos.x.as_millimeters(),
+            0
+        );
+        assert!(
+            (robot_pos.y.as_millimeters() - 0).abs() <= 1,
+            "{} should be {}",
+            robot_pos.y.as_millimeters(),
+            0
+        );
+        assert!(
+            (odom.get_angle() - 1571).abs() <= 3,
+            "{} should be {}",
+            odom.get_angle(),
+            1571
+        );
+    }
+
+    #[test]
+    fn odom_turn_right() {
+        let mut odom = Odometry::new();
+
+        let params = PIDParameters {
+            coder_radius: MilliMeter(31),
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
+            ticks_per_turn: 1024,
+            inter_axial_length: MilliMeter(223),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        };
+
+        for i in 0..1843 {
+            odom.update(i, 0, &params);
+        }
+
+        let robot_pos = odom.get_position();
+
+        assert!(
+            (robot_pos.x.as_millimeters() - 111).abs() <= 1,
+            "{} should be {}",
+            robot_pos.x.as_millimeters(),
+            111
+        );
+        assert!(
+            (robot_pos.y.as_millimeters() - 111).abs() <= 1,
+            "{} should be {}",
+            robot_pos.y.as_millimeters(),
+            111
+        );
     }
 
     // #[test]
     fn odom_complex_navigation() {
         let mut odom = Odometry::new();
 
-        let constants = RobotConstants {
+        let params = PIDParameters {
             coder_radius: MilliMeter(31),
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
+            ticks_per_turn: 1024,
             inter_axial_length: MilliMeter(223),
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
         };
 
-        odom.update(1024, 1024, &constants);
-        odom.update(-1024, 1024, &constants);
-        odom.update(1024, 1024, &constants);
+        odom.update(1024, 1024, &params);
+        odom.update(-1024, 1024, &params);
+        odom.update(1024, 1024, &params);
 
         // assert_eq!(odom.robot_pos.x, MilliMeter(-195));
         // assert_eq!(odom.robot_pos.y, MilliMeter(0));

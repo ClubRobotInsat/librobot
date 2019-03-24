@@ -23,6 +23,7 @@ pub enum IOState {
     Off,
 }
 
+/// Représente l'état du buzzer
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum BuzzerState {
     /// Au repos
