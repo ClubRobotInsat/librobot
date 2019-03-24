@@ -10,18 +10,8 @@
 #[macro_use]
 extern crate std;
 
-pub extern crate arrayvec;
-extern crate cty;
-extern crate embedded_hal;
-extern crate heapless;
-extern crate libm;
-extern crate nb;
-extern crate qei;
-extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-extern crate serde_json_core;
-extern crate w5500;
 
 pub use crate::transmission::*;
 
