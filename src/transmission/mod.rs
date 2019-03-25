@@ -120,10 +120,10 @@ pub mod id {
     pub const ID_PNEUMATIC: u16 = 5;
 
     /// Le port auquel il faut ajouter l'ID pour envoyer des trames à l'informatique
-    pub const INFO_LISTENING_PORT : u16 = 5000;
+    pub const INFO_LISTENING_PORT: u16 = 5000;
 
     /// Le port auquel il faut ajouter l'ID pour recevoir des trames de l'informatique
-    pub const ELEC_LISTENING_PORT : u16 = 50;
+    pub const ELEC_LISTENING_PORT: u16 = 50;
 }
 
 /// Le type de message
