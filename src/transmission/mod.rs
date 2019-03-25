@@ -104,6 +104,28 @@ pub const FRAME_MAX_SIZE: usize = 256 /* - 6*/;
 /// Un message est un tableau de 256 octets.
 pub type Message = ArrayVec<[u8; FRAME_MAX_SIZE]>;
 
+/// Regroupe les identifiants des cartes qui sont utilisés pour calculer les ports d'écoute et d'envoi
+/// lors de la communication par UPD
+pub mod id {
+    /// L'ID de la carte déplacement
+    pub const ID_NAVIGATION: u8 = 1;
+
+    /// L'ID de la carte servo
+    pub const ID_SERVO: u8 = 2;
+
+    /// L'ID de la carte IO (tirette & buzzer)
+    pub const ID_IO: u8 = 4;
+
+    /// L'ID de la carte pneumatique
+    pub const ID_PNEUMATIC: u8 = 5;
+
+    /// Le port auquel il faut ajouter l'ID pour envoyer des trames à l'informatique
+    pub const INFO_LISTENING_PORT : u16 = 5000;
+
+    /// Le port auquel il faut ajouter l'ID pour recevoir des trames de l'informatique
+    pub const ELEC_LISTENING_PORT : u16 = 50;
+}
+
 /// Le type de message
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum MessageKind {
