@@ -108,16 +108,16 @@ pub type Message = ArrayVec<[u8; FRAME_MAX_SIZE]>;
 /// lors de la communication par UPD
 pub mod id {
     /// L'ID de la carte déplacement
-    pub const ID_NAVIGATION: u8 = 1;
+    pub const ID_NAVIGATION: u16 = 1;
 
     /// L'ID de la carte servo
-    pub const ID_SERVO: u8 = 2;
+    pub const ID_SERVO: u16 = 2;
 
     /// L'ID de la carte IO (tirette & buzzer)
-    pub const ID_IO: u8 = 4;
+    pub const ID_IO: u16 = 4;
 
     /// L'ID de la carte pneumatique
-    pub const ID_PNEUMATIC: u8 = 5;
+    pub const ID_PNEUMATIC: u16 = 5;
 
     /// Le port auquel il faut ajouter l'ID pour envoyer des trames à l'informatique
     pub const INFO_LISTENING_PORT : u16 = 5000;
