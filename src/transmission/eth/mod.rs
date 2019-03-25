@@ -14,8 +14,6 @@ pub fn init_eth<E: core::fmt::Debug>(
     spi: &mut FullDuplex<u8, Error = E>,
     mac: &MacAddress,
     ip: &IpAddress,
-    port: u16,
-    socket: Socket,
 ) {
     //eth.set_mode(spi,false, false, false, true).unwrap();
     // using a 'locally administered' MAC address
@@ -29,5 +27,14 @@ pub fn init_eth<E: core::fmt::Debug>(
         .unwrap();
     eth.reset_interrupt(spi, SOCKET_UDP, Interrupt::Received)
         .expect("Failed ot reset interrupts for W5500");
+}
+
+/// Ecoute sur un port avec un socket donné
+pub fn listen_on<E: core::fmt::Debug>(
+    eth: &mut W5500,
+    spi: &mut FullDuplex<u8, Error = E>,
+    port: u16,
+    socket: Socket,
+) {
     eth.listen_udp(spi, socket, port).expect("Failed to listen");
 }
