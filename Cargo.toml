@@ -13,7 +13,7 @@ qei = "~1.0.2"
 libm = "~0.1"
 serde = {version="1.0", default_features = false}
 serde_derive = {version="1.0", default_features = false}
-serde-json-core = { git = "https://github.com/gbip/serde-json-core" }
+serde-json-core = { git = "https://github.com/japaric/serde-json-core" }
 heapless = "0.4.2"
 w5500 = "0.1.5"
 
