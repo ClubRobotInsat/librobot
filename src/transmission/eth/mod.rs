@@ -23,7 +23,7 @@ pub fn init_eth<E: core::fmt::Debug>(
     eth.set_ip(spi, &ip).unwrap();
     eth.set_subnet(spi, &IpAddress::new(255, 255, 255, 0))
         .unwrap();
-    eth.set_gateway(spi, &IpAddress::new(192, 168, 0, 254))
+    eth.set_gateway(spi, &IpAddress::new(192, 168, 1, 254))
         .unwrap();
     eth.reset_interrupt(spi, SOCKET_UDP, Interrupt::Received)
         .expect("Failed ot reset interrupts for W5500");
