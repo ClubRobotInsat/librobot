@@ -72,3 +72,38 @@ impl Jsonizable for NavigationFrame {
         to_string(self)
     }
 }
+
+
+
+#[cfg(test)]
+mod test {
+    use super::{NavigationCommand, NavigationFrame};
+    use crate::transmission::Jsonizable;
+    use heapless::consts::U256;
+    use heapless::String;
+    type N = U256;
+
+    #[test]
+    fn ser_deser_navigation_forward() {
+        let nav = NavigationFrame {
+            angle: 0,
+            args_cmd1: 500,
+            args_cmd2: 0,
+            asserv_on_off: true,
+            blocked: true,
+            command: NavigationCommand::GoForward,
+            counter: 1,
+            led: true,
+            moving_done: false,
+            reset: true,
+            x: 0,
+            y: 0,
+        };
+        let strd: String<N> = nav.to_string().unwrap();
+        let _data =
+            "{\"angle\":0,\"args_cmd1\":500,\"args_cmd2\":0,\"asserv_on_off\":true,\"blocked\":false,\"command\":\"GoForward\",\"counter\":1,\"led\":true,\"moving_done\":false,\"reset\":true,\"x\":0,\"y\":0}";
+        let nav2 = NavigationFrame::from_json_slice(strd.as_bytes()).unwrap();
+        assert_eq!(nav, nav2);
+    }
+
+}
