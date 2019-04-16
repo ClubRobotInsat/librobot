@@ -73,8 +73,6 @@ impl Jsonizable for NavigationFrame {
     }
 }
 
-
-
 #[cfg(test)]
 mod test {
     use super::{NavigationCommand, NavigationFrame};
@@ -90,7 +88,7 @@ mod test {
             args_cmd1: 500,
             args_cmd2: 0,
             asserv_on_off: true,
-            blocked: true,
+            blocked: false,
             command: NavigationCommand::GoForward,
             counter: 1,
             led: true,
@@ -100,10 +98,12 @@ mod test {
             y: 0,
         };
         let strd: String<N> = nav.to_string().unwrap();
-        let _data =
+        let data =
             "{\"angle\":0,\"args_cmd1\":500,\"args_cmd2\":0,\"asserv_on_off\":true,\"blocked\":false,\"command\":\"GoForward\",\"counter\":1,\"led\":true,\"moving_done\":false,\"reset\":true,\"x\":0,\"y\":0}";
         let nav2 = NavigationFrame::from_json_slice(strd.as_bytes()).unwrap();
         assert_eq!(nav, nav2);
+        let nav3 = NavigationFrame::from_json_slice(data.as_bytes()).unwrap();
+        assert_eq!(nav, nav3);
     }
 
 }

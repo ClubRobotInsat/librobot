@@ -102,7 +102,7 @@ mod tests {
             valves: [IOState::On; 6],
         };
         println!("{}", a.to_string::<U2048>().unwrap());
-        let b = Pneumatic::from_json_slice(a.to_string::<U2048>().unwrap().as_bytes());
+        let _b = Pneumatic::from_json_slice(a.to_string::<U2048>().unwrap().as_bytes());
     }
 
 }

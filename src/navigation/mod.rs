@@ -167,22 +167,23 @@ where
 
     /// Ordonne au robot d'avancer de `distance`
     pub fn forward(&mut self, distance: MilliMeter) {
-        let (ticks, _) = self.params.distance_to_ticks(distance, MilliMeter(0));
-        self.internal_pid.increment_position_goal(ticks);
+        let (ticks_left, ticks_right) = self.params.distance_to_ticks(distance, distance);
+        self.internal_pid.increment_goal(ticks_left, ticks_right);
     }
 
     /// Ordonne au robot de reculer de `distance`
     pub fn backward(&mut self, distance: MilliMeter) {
-        let (ticks, _) = self.params.distance_to_ticks(distance, MilliMeter(0));
-        self.internal_pid.decrement_position_goal(ticks);
+        let (ticks_left, ticks_right) = self.params.distance_to_ticks(distance, distance);
+        self.internal_pid.increment_goal(-ticks_left, -ticks_right);
     }
 
     /// Ordonne au robot de tourner de `angle` (en milliradians)
     pub fn rotate(&mut self, angle: i64) {
         let turn_distance =
-            angle as f32 * self.params.inter_axial_length.as_millimeters() as f32 * 0.001;
-        let (ticks, _) = self.params.distancef_to_ticks(turn_distance, 0.);
-        self.internal_pid.increment_orientation_goal(ticks);
+            angle as f32 * self.params.inter_axial_length.as_millimeters() as f32 * (0.001 / 2.);
+        let (ticks_left, ticks_right) =
+            self.params.distancef_to_ticks(turn_distance, turn_distance);
+        self.internal_pid.increment_goal(-ticks_left, ticks_right);
     }
 }
 

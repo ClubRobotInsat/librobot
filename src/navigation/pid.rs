@@ -17,10 +17,10 @@ pub(crate) struct Pid {
     orient_kd: f32,
     // La valeur maximale de la commande en sortie
     max_output: u16,
-    // La consigne de position du robot exprimée en nombre de tick de roue codeuse
-    position_order: i64,
-    // La consigne d'angle exprimée en différence de tick de chaque roue codeuse
-    orientation_order: i64,
+    // La consigne de la roue gauche exprimée en ticks de roues codeuses
+    left_goal: i64,
+    // La consigne de la roue droite exprimée en ticks de roues codeuses
+    right_goal: i64,
 }
 
 // Implémentation du PID
@@ -45,32 +45,19 @@ impl Pid {
             orient_kp,
             orient_kd,
             max_output,
-            position_order: 0,
-            orientation_order: 0,
+            left_goal: 0,
+            right_goal: 0,
         }
     }
 
-    /// Mets à jour la consigne en position en terme de tick de roues codeuses
-    pub(crate) fn set_position_goal(&mut self, pos: i64) {
-        self.position_order = pos;
+    pub(crate) fn set_goal(&mut self, left: i64, right: i64) {
+        self.left_goal = left;
+        self.right_goal = right;
     }
 
-    pub(crate) fn increment_position_goal(&mut self, pos: i64) {
-        self.position_order += pos;
-    }
-
-    pub(crate) fn decrement_position_goal(&mut self, pos: i64) {
-        self.position_order -= pos;
-    }
-
-    /// Mets à jour la consigne en orientation en terme de tick de roues codeuses.
-    pub(crate) fn set_orientation_goal(&mut self, orientation: i64) {
-        self.orientation_order = orientation;
-    }
-
-    /// Incrémente la consigne en orientation de la valeur donnée, en tick de roues codeuses
-    pub(crate) fn increment_orientation_goal(&mut self, orientation: i64) {
-        self.orientation_order += orientation;
+    pub(crate) fn increment_goal(&mut self, left: i64, right: i64) {
+        self.left_goal += left;
+        self.right_goal += right;
     }
 
     /// Renvoie la nouvelle consigne à appliquer aux deux roues pour atteindre la commande en position
@@ -83,7 +70,8 @@ impl Pid {
     ) -> f32 {
         let dist = (left_count + right_count) / 2;
         let speed = (left_speed + right_speed) / 2;
-        let diff = self.position_order as i64 - dist;
+        let position_order = (self.left_goal + self.right_goal) / 2;
+        let diff = position_order as i64 - dist;
         (diff as f32 * self.pos_kp) - self.pos_kd as f32 * speed as f32
     }
 
@@ -97,7 +85,8 @@ impl Pid {
     ) -> (f32, f32) {
         let orientation = right_count - left_count;
         let speed = right_speed - left_speed;
-        let diff = self.orientation_order - orientation;
+        let orientation_order = self.right_goal - self.left_goal;
+        let diff = orientation_order - orientation;
         let cmd = (diff as f32 * self.orient_kp) - self.orient_kd * speed as f32;
         (-cmd, cmd)
     }
@@ -145,10 +134,7 @@ impl Pid {
 
     /// Renvoie le but du PID en ticks de roue codeuse sous la forme (gauche,droite).
     pub fn get_qei_goal(&self) -> (i64, i64) {
-        (
-            self.position_order - self.orientation_order / 2,
-            self.position_order + self.orientation_order / 2,
-        )
+        (self.left_goal, self.right_goal)
     }
 }
 
@@ -177,7 +163,7 @@ mod test {
         let mut qei_right = QeiManager::new(motor_right.clone());
         let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_position_goal(9000);
+        pid.set_goal(9000, 9000);
         for _ in 0..999 {
             let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
             motor_left.apply_command(cmdl);
@@ -198,7 +184,7 @@ mod test {
         let mut qei_right = QeiManager::new(motor_right.clone());
         let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_position_goal(-9137);
+        pid.set_goal(-9137, -9137);
         for _ in 0..999 {
             let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
             motor_left.apply_command(cmdl);
@@ -219,7 +205,7 @@ mod test {
         let mut qei_right = QeiManager::new(motor_right.clone());
         let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_orientation_goal(733);
+        pid.set_goal(-733 / 2, 733 / 2);
         for _ in 0..999 {
             let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
             motor_left.apply_command(cmdl);
@@ -229,13 +215,13 @@ mod test {
         }
         // Erreur inférieure à 0.1%
         assert!(
-            (motor_left.get_real_position() + 733 / 2).abs() <= 1,
+            (motor_left.get_real_position() + 733 / 2).abs() <= 2,
             "{} should be {}",
             motor_left.get_real_position(),
             -733 / 2
         );
         assert!(
-            (motor_right.get_real_position() - 733 / 2).abs() <= 1,
+            (motor_right.get_real_position() - 733 / 2).abs() <= 2,
             "{} should be {}",
             motor_right.get_real_position(),
             733 / 2
@@ -250,7 +236,7 @@ mod test {
         let mut qei_right = QeiManager::new(motor_right.clone());
         let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_orientation_goal(-733);
+        pid.set_goal(733 / 2, -733 / 2);
         for _ in 0..999 {
             let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
             motor_left.apply_command(cmdl);
@@ -260,13 +246,13 @@ mod test {
         }
         // Erreur inférieure à 0.1%
         assert!(
-            (motor_left.get_real_position() - 733 / 2).abs() <= 1,
+            (motor_left.get_real_position() - 733 / 2).abs() <= 2,
             "{} should be {}",
             motor_left.get_real_position(),
             733 / 2
         );
         assert!(
-            (motor_right.get_real_position() + 733 / 2).abs() <= 1,
+            (motor_right.get_real_position() + 733 / 2).abs() <= 2,
             "{} should be {}",
             motor_right.get_real_position(),
             -733 / 2
