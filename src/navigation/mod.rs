@@ -185,6 +185,12 @@ where
             self.params.distancef_to_ticks(turn_distance, turn_distance);
         self.internal_pid.increment_goal(-ticks_left, ticks_right);
     }
+
+    /// Ordonne au robot de rester là où il est actuellement
+    pub fn stop(&mut self) {
+        let (left, right) = self.get_qei_ticks();
+        self.internal_pid.set_goal(left, right);
+    }
 }
 
 impl PIDParameters {
