@@ -9,11 +9,11 @@ use serde_json_core::ser::{to_string, Error as SError};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct NavigationFrame {
     /// position x du robot en dixieme de millimetres
-    pub x: u16,
+    pub x: i32,
     /// position y du robot en dixieme de millimetres
-    pub y: u16,
+    pub y: i32,
     /// angle du robot en centaines de microradians
-    pub angle: u16,
+    pub angle: i32,
     /// vrai si le robot ne peut pas avancer
     pub blocked: bool,
     /// vrai si l'asservissement est operationnel
