@@ -50,6 +50,10 @@ impl Pid {
         }
     }
 
+    pub(crate) fn set_max_output(&mut self, max_output: u16) {
+
+    }
+
     pub(crate) fn set_goal(&mut self, left: f32, right: f32) {
         self.left_goal = left;
         self.right_goal = right;
@@ -58,6 +62,11 @@ impl Pid {
     pub(crate) fn increment_goal(&mut self, left: f32, right: f32) {
         self.left_goal += left;
         self.right_goal += right;
+    }
+
+    /// Renvoie la consigne du PID en mm sous la forme (gauche,droite).
+    pub fn get_goal(&self) -> (f32, f32) {
+        (self.left_goal, self.right_goal)
     }
 
     /// Renvoie la nouvelle consigne à appliquer aux deux roues pour atteindre la commande en position
@@ -126,11 +135,6 @@ impl Pid {
         let right_cmd = position_cmd + orientation_cmd_right;
         // Truncate resul
         (self.truncate(left_cmd), self.truncate(right_cmd))
-    }
-
-    /// Renvoie le but du PID en mm sous la forme (gauche,droite).
-    pub fn get_qei_goal(&self) -> (f32, f32) {
-        (self.left_goal, self.right_goal)
     }
 }
 

@@ -189,6 +189,16 @@ where
         let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
         self.internal_pid.set_goal(left_dist, right_dist);
     }
+
+    /// Retourne `true` si le pid a atteind sa consigne en position et angle
+    pub fn is_goal_reached(&self, lin_accuracy: f32, ang_accuracy: f32) -> bool {
+        let (left_ticks, right_ticks) = self.get_qei_ticks();
+        let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
+        let (left_goal, right_goal) = self.internal_pid.get_goal();
+        let lin_gap = (left_dist + right_dist - left_goal - right_goal) / 2.0;
+        let ang_gap = (left_dist - right_dist - left_goal + right_goal) / self.params.inter_axial_length;
+        lin_gap.abs() < lin_accuracy && ang_gap.abs() < ang_accuracy / 1000.0
+    }
 }
 
 impl PIDParameters {
@@ -238,6 +248,7 @@ mod test {
     use super::motor::test::DummyMotor;
     use super::{PIDParameters, RealWorldPid};
     use crate::units::MilliMeter;
+    use crate::navigation::Command;
 
     #[test]
     fn test_ticks_to_distance() {
@@ -293,6 +304,46 @@ mod test {
             "{} should be 1276",
             right_ticks
         );
+    }
+
+    #[test]
+    fn test_goal_reached() {
+        let pid_parameters = PIDParameters {
+            coder_radius: 30.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
+            ticks_per_turn: 1024,
+            inter_axial_length: 300.0,
+            pos_kp: 1.0,
+            pos_kd: 1.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        };
+
+        let mut motor_left = DummyMotor::new();
+        let mut motor_right = DummyMotor::new();
+        let mut qei_left = QeiManager::new(motor_left.clone());
+        let mut qei_right = QeiManager::new(motor_right.clone());
+        let mut pid = RealWorldPid::new(qei_left, qei_right, &pid_parameters);
+
+        pid.internal_pid.set_goal(10.0, 10.0);
+
+        assert!(pid.is_goal_reached(11.0, 0.1));
+        assert!(!pid.is_goal_reached(4.0, 0.1));
+
+        pid.internal_pid.set_goal(10.0, -10.0);
+        motor_left.set_position(49); // 9 mm
+        motor_right.set_position(-65); // 12 mm
+
+        pid.qei.0.sample_unwrap();
+        pid.qei.1.sample_unwrap();
+        let (left_ticks, right_ticks) = pid.get_qei_ticks();
+        let (left_dist, right_dist) = pid_parameters.ticks_to_distance(left_ticks, right_ticks);
+
+        assert!(pid.is_goal_reached(2.0, 5.0), "success with {}, {}", left_dist, right_dist);
+        assert!(!pid.is_goal_reached(2.0, 2.0), "angular fails with {}, {}", left_dist, right_dist);
+        assert!(!pid.is_goal_reached(0.5, 5.0), "linear fails with {}, {}", left_dist, right_dist);
     }
 
     /*#[test]

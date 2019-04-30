@@ -157,6 +157,13 @@ pub mod test {
             }
         }
 
+        /// Set motor to a particular position, without the need of controlling
+        /// it from a pid.
+        pub(crate) fn set_position(&mut self, position: i64) {
+            self.real_position.replace(position);
+            self.wrapped_position.replace(position as u16);
+        }
+
         pub(crate) fn get_real_position(&self) -> i64 {
             self.real_position.get()
         }
