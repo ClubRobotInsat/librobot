@@ -177,8 +177,8 @@ where
     }
 
     /// Ordonne au robot de tourner de `angle` (en milliradians)
-    pub fn rotate(&mut self, angle: i64) {
-        let turn_distance = angle as f32 * self.params.inter_axial_length * (0.001 / 2.);
+    pub fn rotate(&mut self, angle: f32) {
+        let turn_distance = angle * self.params.inter_axial_length * (0.001 / 2.);
         self.internal_pid
             .increment_goal(-turn_distance, turn_distance);
     }
