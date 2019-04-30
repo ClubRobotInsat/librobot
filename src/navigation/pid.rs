@@ -119,12 +119,8 @@ impl Pid {
         // Calcul du PID
         let position_cmd =
             self.update_position_command(new_left_dist, new_right_dist, left_speed, right_speed);
-        let (orientation_cmd_left, orientation_cmd_right) = self.update_orientation_command(
-            new_left_dist,
-            new_right_dist,
-            left_speed,
-            right_speed,
-        );
+        let (orientation_cmd_left, orientation_cmd_right) =
+            self.update_orientation_command(new_left_dist, new_right_dist, left_speed, right_speed);
 
         let left_cmd = position_cmd + orientation_cmd_left;
         let right_cmd = position_cmd + orientation_cmd_right;
@@ -165,7 +161,10 @@ mod test {
 
         pid.set_goal(9000.0, 9000.0);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left) as f32, get_qei(&mut qei_right) as f32);
+            let (cmdl, cmdr) = pid.update(
+                get_qei(&mut qei_left) as f32,
+                get_qei(&mut qei_right) as f32,
+            );
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -186,7 +185,10 @@ mod test {
 
         pid.set_goal(-9137.0, -9137.0);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left) as f32, get_qei(&mut qei_right) as f32);
+            let (cmdl, cmdr) = pid.update(
+                get_qei(&mut qei_left) as f32,
+                get_qei(&mut qei_right) as f32,
+            );
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -207,7 +209,10 @@ mod test {
 
         pid.set_goal(-733. / 2., 733. / 2.);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left) as f32, get_qei(&mut qei_right) as f32);
+            let (cmdl, cmdr) = pid.update(
+                get_qei(&mut qei_left) as f32,
+                get_qei(&mut qei_right) as f32,
+            );
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -238,7 +243,10 @@ mod test {
 
         pid.set_goal(733. / 2., -733. / 2.);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left) as f32, get_qei(&mut qei_right) as f32);
+            let (cmdl, cmdr) = pid.update(
+                get_qei(&mut qei_left) as f32,
+                get_qei(&mut qei_right) as f32,
+            );
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();

@@ -178,9 +178,9 @@ where
 
     /// Ordonne au robot de tourner de `angle` (en milliradians)
     pub fn rotate(&mut self, angle: i64) {
-        let turn_distance =
-            angle as f32 * self.params.inter_axial_length * (0.001 / 2.);
-        self.internal_pid.increment_goal(-turn_distance, turn_distance);
+        let turn_distance = angle as f32 * self.params.inter_axial_length * (0.001 / 2.);
+        self.internal_pid
+            .increment_goal(-turn_distance, turn_distance);
     }
 
     /// Ordonne au robot de rester là où il est actuellement
@@ -194,8 +194,7 @@ where
 impl PIDParameters {
     /// Convertit les ticks des QEI en distance parcourue par les roues codeuses (en mm)
     pub fn ticks_to_distance(&self, left_ticks: i64, right_ticks: i64) -> (f32, f32) {
-        let distance_per_wheel_turn =
-            self.coder_radius * 2.0 * core::f32::consts::PI;
+        let distance_per_wheel_turn = self.coder_radius * 2.0 * core::f32::consts::PI;
 
         (
             left_ticks as f32 * distance_per_wheel_turn * self.left_wheel_coef
@@ -208,8 +207,7 @@ impl PIDParameters {
     /// Convertit la distance parcourue en mm par chaque roue codeuse, en nombre de ticks
     /// observé par chaque QEI.
     pub(crate) fn distancef_to_ticks(&self, left_distance: f32, right_distance: f32) -> (i64, i64) {
-        let distance_per_wheel_turn =
-            self.coder_radius * 2.0 * core::f32::consts::PI;
+        let distance_per_wheel_turn = self.coder_radius * 2.0 * core::f32::consts::PI;
 
         (
             (left_distance * self.ticks_per_turn as f32
