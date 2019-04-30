@@ -9,18 +9,18 @@ use libm::F32Ext;
 
 /// Le PID du robot
 pub(crate) struct Pid {
-    old_left_count: i64,
-    old_right_count: i64,
+    old_left_dist: f32,
+    old_right_dist: f32,
     pos_kp: f32,
     pos_kd: f32,
     orient_kp: f32,
     orient_kd: f32,
     // La valeur maximale de la commande en sortie
     max_output: u16,
-    // La consigne de la roue gauche exprimée en ticks de roues codeuses
-    left_goal: i64,
-    // La consigne de la roue droite exprimée en ticks de roues codeuses
-    right_goal: i64,
+    // La consigne de la roue gauche exprimée en millimètres
+    left_goal: f32,
+    // La consigne de la roue droite exprimée en millimètres
+    right_goal: f32,
 }
 
 // Implémentation du PID
@@ -38,24 +38,24 @@ impl Pid {
         max_output: u16,
     ) -> Self {
         Pid {
-            old_left_count: 0,
-            old_right_count: 0,
+            old_left_dist: 0.0,
+            old_right_dist: 0.0,
             pos_kp,
             pos_kd,
             orient_kp,
             orient_kd,
             max_output,
-            left_goal: 0,
-            right_goal: 0,
+            left_goal: 0.0,
+            right_goal: 0.0,
         }
     }
 
-    pub(crate) fn set_goal(&mut self, left: i64, right: i64) {
+    pub(crate) fn set_goal(&mut self, left: f32, right: f32) {
         self.left_goal = left;
         self.right_goal = right;
     }
 
-    pub(crate) fn increment_goal(&mut self, left: i64, right: i64) {
+    pub(crate) fn increment_goal(&mut self, left: f32, right: f32) {
         self.left_goal += left;
         self.right_goal += right;
     }
@@ -63,31 +63,31 @@ impl Pid {
     /// Renvoie la nouvelle consigne à appliquer aux deux roues pour atteindre la commande en position
     fn update_position_command(
         &self,
-        left_count: i64,
-        right_count: i64,
-        left_speed: i64,
-        right_speed: i64,
+        left_dist: f32,
+        right_dist: f32,
+        left_speed: f32,
+        right_speed: f32,
     ) -> f32 {
-        let dist = (left_count + right_count) / 2;
-        let speed = (left_speed + right_speed) / 2;
-        let position_order = (self.left_goal + self.right_goal) / 2;
-        let diff = position_order as i64 - dist;
-        (diff as f32 * self.pos_kp) - self.pos_kd as f32 * speed as f32
+        let dist = (left_dist + right_dist) / 2.;
+        let speed = (left_speed + right_speed) / 2.;
+        let position_order = (self.left_goal + self.right_goal) / 2.;
+        let diff = position_order - dist;
+        (diff * self.pos_kp) - self.pos_kd * speed
     }
 
     /// Renvoie les nouvelles consignes à appliquer aux deux roues pour atteindre la commande en orientation
     fn update_orientation_command(
         &self,
-        left_count: i64,
-        right_count: i64,
-        left_speed: i64,
-        right_speed: i64,
+        left_dist: f32,
+        right_dist: f32,
+        left_speed: f32,
+        right_speed: f32,
     ) -> (f32, f32) {
-        let orientation = right_count - left_count;
+        let orientation = right_dist - left_dist;
         let speed = right_speed - left_speed;
         let orientation_order = self.right_goal - self.left_goal;
         let diff = orientation_order - orientation;
-        let cmd = (diff as f32 * self.orient_kp) - self.orient_kd * speed as f32;
+        let cmd = (diff * self.orient_kp) - self.orient_kd * speed;
         (-cmd, cmd)
     }
 
@@ -107,21 +107,21 @@ impl Pid {
 
     /// Renvoie la nouvelle consigne à appliquer aux roues pour le pid
     /// L'algorithme est issue de [cette](https://www.rcva.fr/10-ans-dexperience/9/) page internet.
-    pub(crate) fn update(&mut self, left_ticks: i64, right_ticks: i64) -> (Command, Command) {
+    pub(crate) fn update(&mut self, left_dist: f32, right_dist: f32) -> (Command, Command) {
         // Mise à jour de la mémoire du PID
-        let (new_left_count, new_right_count) = (left_ticks, right_ticks);
+        let (new_left_dist, new_right_dist) = (left_dist, right_dist);
         let (left_speed, right_speed) = (
-            new_left_count - self.old_left_count,
-            new_right_count - self.old_right_count,
+            new_left_dist - self.old_left_dist,
+            new_right_dist - self.old_right_dist,
         );
-        self.old_left_count = new_left_count;
-        self.old_right_count = new_right_count;
+        self.old_left_dist = new_left_dist;
+        self.old_right_dist = new_right_dist;
         // Calcul du PID
         let position_cmd =
-            self.update_position_command(new_left_count, new_right_count, left_speed, right_speed);
+            self.update_position_command(new_left_dist, new_right_dist, left_speed, right_speed);
         let (orientation_cmd_left, orientation_cmd_right) = self.update_orientation_command(
-            new_left_count,
-            new_right_count,
+            new_left_dist,
+            new_right_dist,
             left_speed,
             right_speed,
         );
@@ -132,8 +132,8 @@ impl Pid {
         (self.truncate(left_cmd), self.truncate(right_cmd))
     }
 
-    /// Renvoie le but du PID en ticks de roue codeuse sous la forme (gauche,droite).
-    pub fn get_qei_goal(&self) -> (i64, i64) {
+    /// Renvoie le but du PID en mm sous la forme (gauche,droite).
+    pub fn get_qei_goal(&self) -> (f32, f32) {
         (self.left_goal, self.right_goal)
     }
 }
@@ -163,9 +163,9 @@ mod test {
         let mut qei_right = QeiManager::new(motor_right.clone());
         let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_goal(9000, 9000);
+        pid.set_goal(9000.0, 9000.0);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
+            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left) as f32, get_qei(&mut qei_right) as f32);
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -184,9 +184,9 @@ mod test {
         let mut qei_right = QeiManager::new(motor_right.clone());
         let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_goal(-9137, -9137);
+        pid.set_goal(-9137.0, -9137.0);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
+            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left) as f32, get_qei(&mut qei_right) as f32);
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -205,9 +205,9 @@ mod test {
         let mut qei_right = QeiManager::new(motor_right.clone());
         let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_goal(-733 / 2, 733 / 2);
+        pid.set_goal(-733. / 2., 733. / 2.);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
+            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left) as f32, get_qei(&mut qei_right) as f32);
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
@@ -236,9 +236,9 @@ mod test {
         let mut qei_right = QeiManager::new(motor_right.clone());
         let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_goal(733 / 2, -733 / 2);
+        pid.set_goal(733. / 2., -733. / 2.);
         for _ in 0..999 {
-            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left), get_qei(&mut qei_right));
+            let (cmdl, cmdr) = pid.update(get_qei(&mut qei_left) as f32, get_qei(&mut qei_right) as f32);
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
