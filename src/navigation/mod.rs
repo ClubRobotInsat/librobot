@@ -196,7 +196,8 @@ where
         let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
         let (left_goal, right_goal) = self.internal_pid.get_goal();
         let lin_gap = (left_dist + right_dist - left_goal - right_goal) / 2.0;
-        let ang_gap = (left_dist - right_dist - left_goal + right_goal) / self.params.inter_axial_length;
+        let ang_gap =
+            (left_dist - right_dist - left_goal + right_goal) / self.params.inter_axial_length;
         lin_gap.abs() < lin_accuracy && ang_gap.abs() < ang_accuracy / 1000.0
     }
 }
@@ -247,8 +248,8 @@ mod test {
 
     use super::motor::test::DummyMotor;
     use super::{PIDParameters, RealWorldPid};
-    use crate::units::MilliMeter;
     use crate::navigation::Command;
+    use crate::units::MilliMeter;
 
     #[test]
     fn test_ticks_to_distance() {
@@ -323,8 +324,8 @@ mod test {
 
         let mut motor_left = DummyMotor::new();
         let mut motor_right = DummyMotor::new();
-        let mut qei_left = QeiManager::new(motor_left.clone());
-        let mut qei_right = QeiManager::new(motor_right.clone());
+        let qei_left = QeiManager::new(motor_left.clone());
+        let qei_right = QeiManager::new(motor_right.clone());
         let mut pid = RealWorldPid::new(qei_left, qei_right, &pid_parameters);
 
         pid.internal_pid.set_goal(10.0, 10.0);
@@ -341,12 +342,28 @@ mod test {
         let (left_ticks, right_ticks) = pid.get_qei_ticks();
         let (left_dist, right_dist) = pid_parameters.ticks_to_distance(left_ticks, right_ticks);
 
-        assert!(pid.is_goal_reached(2.0, 5.0), "success with {}, {}", left_dist, right_dist);
-        assert!(!pid.is_goal_reached(2.0, 2.0), "angular fails with {}, {}", left_dist, right_dist);
-        assert!(!pid.is_goal_reached(0.5, 5.0), "linear fails with {}, {}", left_dist, right_dist);
+        assert!(
+            pid.is_goal_reached(2.0, 5.0),
+            "success with {}, {}",
+            left_dist,
+            right_dist
+        );
+        assert!(
+            !pid.is_goal_reached(2.0, 2.0),
+            "angular fails with {}, {}",
+            left_dist,
+            right_dist
+        );
+        assert!(
+            !pid.is_goal_reached(0.5, 5.0),
+            "linear fails with {}, {}",
+            left_dist,
+            right_dist
+        );
     }
 
-    /*#[test]
+    /*
+    #[test]
     fn real_world_pid_forward() {
         let pid_parameters = PIDParameters {
             coder_radius: 30.0,
@@ -374,35 +391,63 @@ mod test {
         assert!((goall - 543).abs() <= 1, "{} should be {}", goall, 543);
         assert!((goalr - 543).abs() <= 1, "{} should be {}", goalr, 543);
     }
+    */
 
     #[test]
     fn real_world_pid_rotation() {
         let pid_parameters = PIDParameters {
             coder_radius: 30.0,
             left_wheel_coef: 1.0,
-            right_wheel_coef: 0.5,
+            right_wheel_coef: -1.0,
             ticks_per_turn: 1024,
             inter_axial_length: 300.0,
             pos_kp: 1.0,
-            pos_kd: 1.0,
+            pos_kd: 0.0,
             orient_kp: 1.0,
-            orient_kd: 1.0,
+            orient_kd: 0.0,
             max_output: 100,
         };
 
-        let motor_left = DummyMotor::new();
-        let motor_right = DummyMotor::new();
+        let mut motor_left = DummyMotor::new();
+        let mut motor_right = DummyMotor::new();
         let qei_left = QeiManager::new(motor_left.clone());
         let qei_right = QeiManager::new(motor_right.clone());
         let mut pid = RealWorldPid::new(qei_left, qei_right, &pid_parameters);
 
-        pid.rotate(785); // PI / 4 en milliradians
+        pid.rotate(785.0); // PI / 4 en milliradians
 
-        let (goall, goalr) = pid.internal_pid.get_qei_goal();
+        let (goall, goalr) = pid.internal_pid.get_goal();
 
-        assert!((goall + 640).abs() <= 1, "{} should be {}", goall, -640);
-        assert!((goalr - 640).abs() <= 1, "{} should be {}", goalr, 640);
-    }*/
+        assert!((goall + 117.0).abs() <= 1.0, "{} should be {}", goall, -117);
+        assert!((goalr - 117.0).abs() <= 1.0, "{} should be {}", goalr, 117);
+
+        pid.update();
+        let (cmd_left, cmd_right) = pid.get_command();
+
+        match cmd_left {
+            Command::Back(_) => {}
+            _ => panic!("cmd_left should be going backward."),
+        }
+        match cmd_right {
+            Command::Front(_) => {}
+            _ => panic!("cmd_right should be going forward."),
+        }
+
+        motor_left.set_position(-1024);
+        motor_right.set_position(-1024);
+
+        pid.update();
+        let (cmd_left2, cmd_right2) = pid.get_command();
+
+        match cmd_left2 {
+            Command::Front(_) => {}
+            _ => panic!("cmd_left2 should be going forward."),
+        }
+        match cmd_right2 {
+            Command::Back(_) => {}
+            _ => panic!("cmd_right2 should be going backward."),
+        }
+    }
 
     #[test]
     fn test_full_session() {}
