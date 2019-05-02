@@ -166,6 +166,11 @@ where
         (self.qei.0.count(), self.qei.1.count())
     }
 
+    /// Définit la position actuelle de l'odométrie
+    pub fn set_position_and_angle(&mut self, position: Coord, angle: i64) {
+        self.odometry.set_position_and_angle(position, angle);
+    }
+
     /// Ordonne au robot d'avancer de `distance` (en mm)
     pub fn forward(&mut self, distance: f32) {
         self.internal_pid.increment_goal(distance, distance);

@@ -38,7 +38,7 @@ impl Odometry {
     /// Définit les informations de position du robot.
     /// `new_pos` est exprimé en millimètres, `new_angle` est exprimé
     /// en milliradians
-    pub(crate) fn set_position(&mut self, new_pos: Coord, new_angle: i64) {
+    pub(crate) fn set_position_and_angle(&mut self, new_pos: Coord, new_angle: i64) {
         self.x = new_pos.x.as_millimeters() as f32;
         self.y = new_pos.y.as_millimeters() as f32;
         self.angle = new_angle as f32 / 1000.0;
@@ -154,7 +154,7 @@ mod test {
             max_output: 100,
         };
 
-        odom.set_position(
+        odom.set_position_and_angle(
             Coord {
                 x: MilliMeter(0),
                 y: MilliMeter(0),
