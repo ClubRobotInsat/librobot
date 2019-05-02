@@ -188,6 +188,25 @@ where
             .increment_goal(-turn_distance, turn_distance);
     }
 
+    /// Ordonne au robot de tourner de façon à s'orienter vers l'angle `angle`
+    /// (en milliradians). Le robot détermine sa position initiale grâce à
+    /// l'odométrie.
+    pub fn rotate_absolute(&mut self, angle: f32) {
+        let current_angle = self.odometry.get_angle() as f32;
+        let mut diff = angle - current_angle;
+
+        // Find the best angle
+        let pi = core::f32::consts::PI * 1000.0;
+        while diff < -pi {
+            diff += pi * 2.0;
+        }
+
+        while diff >= pi {
+            diff -= pi * 2.0;
+        }
+        self.rotate(diff);
+    }
+
     /// Ordonne au robot de rester là où il est actuellement
     pub fn stop(&mut self) {
         let (left_ticks, right_ticks) = self.get_qei_ticks();
@@ -252,7 +271,7 @@ mod test {
     use qei::QeiManager;
 
     use super::motor::test::DummyMotor;
-    use super::{PIDParameters, RealWorldPid};
+    use super::{Coord, PIDParameters, RealWorldPid};
     use crate::navigation::Command;
     use crate::units::MilliMeter;
 
@@ -452,6 +471,44 @@ mod test {
             Command::Back(_) => {}
             _ => panic!("cmd_right2 should be going backward."),
         }
+    }
+
+    #[test]
+    fn test_real_world_pid_rotate_absolute() {
+        let pid_parameters = PIDParameters {
+            coder_radius: 30.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: -1.0,
+            ticks_per_turn: 1024,
+            inter_axial_length: 300.0,
+            pos_kp: 1.0,
+            pos_kd: 0.0,
+            orient_kp: 1.0,
+            orient_kd: 0.0,
+            max_output: 100,
+        };
+
+        let mut motor_left = DummyMotor::new();
+        let mut motor_right = DummyMotor::new();
+        let qei_left = QeiManager::new(motor_left.clone());
+        let qei_right = QeiManager::new(motor_right.clone());
+        let mut pid = RealWorldPid::new(qei_left, qei_right, &pid_parameters);
+
+        pid.set_position_and_angle(Coord{ x: MilliMeter(0), y:MilliMeter(0)}, 5890); // 15 * pi / 8
+        pid.rotate_absolute(392.0); // rotation relative de pi/4
+
+        let (goall, goalr) = pid.internal_pid.get_goal();
+
+        assert!((goall + 117.0).abs() <= 1.0, "{} should be {}", goall, -117);
+        assert!((goalr - 117.0).abs() <= 1.0, "{} should be {}", goalr, 117);
+
+        pid.set_position_and_angle(Coord{ x: MilliMeter(0), y:MilliMeter(0)}, 9032); // 23 * pi / 8
+        pid.rotate_absolute(1963.0); // rotation relative de -pi/4
+
+        let (goall1, goalr1) = pid.internal_pid.get_goal();
+
+        assert!((goall1 - 0.0).abs() <= 1.0, "{} should be {}", goall1, 0);
+        assert!((goalr1 + 0.0).abs() <= 1.0, "{} should be {}", goalr1, 0);
     }
 
     #[test]
