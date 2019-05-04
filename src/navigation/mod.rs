@@ -49,7 +49,8 @@ pub struct Coord {
 
 /// Le module central de la navigation, qui permet de controller le robot avec les unités du monde
 /// physique, et d'avoir un retour sur la position du robot. Il contient:
-/// * un PID basé sur les ticks de roue codeuse
+/// * un PID basé sur la distance parcourue par le robot en millimètres
+/// * un module d'odométrie capable de retrouver la position et l'angle du robot
 /// * les informations nécessaires pour passer du monde des ticks de roue codeuses au monde physique
 /// * les qei gauche et droite correspondant aux deux roues codeuses
 /// * la commande à appliquer aux moteurs gauche et droit
@@ -63,6 +64,7 @@ where
     params: PIDParameters,
     qei: (QeiManager<L>, QeiManager<R>),
     command: (Command, Command),
+    last_ticks: (i64, i64),
 }
 
 /// Les paramètres d'un PID
@@ -149,14 +151,16 @@ where
             params: params.clone(),
             qei: (qei_left, qei_right),
             command: (Command::Front(0), Command::Front(0)),
+            last_ticks: (0, 0),
         }
     }
 
     /// Mets à jour le PID et la position du robot
     pub fn update(&mut self) {
+        self.last_ticks = self.get_qei_ticks();
         self.qei.0.sample_unwrap();
         self.qei.1.sample_unwrap();
-        let (left_ticks, right_ticks) = (self.qei.0.count(), self.qei.1.count());
+        let (left_ticks, right_ticks) = self.get_qei_ticks();
         let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
         self.command = self.internal_pid.update(left_dist, right_dist);
         self.odometry
@@ -229,6 +233,32 @@ where
         let (left_ticks, right_ticks) = self.get_qei_ticks();
         let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
         self.internal_pid.set_goal(left_dist, right_dist);
+    }
+
+    /// Retourne `true` si le robot est bloqué, c'est à dire s'il reçoit une
+    /// commande mais ne change pas de position.
+    pub fn is_robot_blocked(&self) -> bool {
+        let (left_ticks, right_ticks) = self.get_qei_ticks();
+        let (left_diff, right_diff) = self.params.ticks_to_distance(
+            left_ticks - self.last_ticks.0,
+            right_ticks - self.last_ticks.1,
+        );
+        let (left_command, right_command) = self.get_command();
+
+        let threshold1 = 4;
+        let threshold2 = 10.0;
+
+        if left_command.get_value() > threshold1 {
+            match left_command {
+                Command::Front(_) => left_diff < threshold2,
+                Command::Back(_) => left_diff > -threshold2,
+            }
+        } else if right_command.get_value() > threshold1 {
+            match right_command {
+                Command::Front(_) => right_diff < threshold2,
+                Command::Back(_) => right_diff > -threshold2,
+            }
+        } else { false }
     }
 
     /// Retourne `true` si le pid a atteind sa consigne en position et angle
@@ -506,7 +536,13 @@ mod test {
         let qei_right = QeiManager::new(motor_right.clone());
         let mut pid = RealWorldPid::new(qei_left, qei_right, &pid_parameters);
 
-        pid.set_position_and_angle(Coord{ x: MilliMeter(0), y:MilliMeter(0)}, 5890); // 15 * pi / 8
+        pid.set_position_and_angle(
+            Coord {
+                x: MilliMeter(0),
+                y: MilliMeter(0),
+            },
+            5890,
+        ); // 15 * pi / 8
         pid.rotate_absolute(392.0); // rotation relative de pi/4
 
         let (goall, goalr) = pid.internal_pid.get_goal();
@@ -514,13 +550,24 @@ mod test {
         assert!((goall + 117.0).abs() <= 1.0, "{} should be {}", goall, -117);
         assert!((goalr - 117.0).abs() <= 1.0, "{} should be {}", goalr, 117);
 
-        pid.set_position_and_angle(Coord{ x: MilliMeter(0), y:MilliMeter(0)}, 9032); // 23 * pi / 8
+        pid.set_position_and_angle(
+            Coord {
+                x: MilliMeter(0),
+                y: MilliMeter(0),
+            },
+            9032,
+        ); // 23 * pi / 8
         pid.rotate_absolute(1963.0); // rotation relative de -pi/4
 
         let (goall1, goalr1) = pid.internal_pid.get_goal();
 
         assert!((goall1 - 0.0).abs() <= 1.0, "{} should be {}", goall1, 0);
         assert!((goalr1 + 0.0).abs() <= 1.0, "{} should be {}", goalr1, 0);
+    }
+
+    #[test]
+    fn test_real_world_pid_blocked() {
+        // TODO
     }
 
     #[test]

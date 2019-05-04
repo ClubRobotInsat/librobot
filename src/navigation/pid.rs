@@ -15,11 +15,11 @@ pub(crate) struct Pid {
     pos_kd: f32,
     orient_kp: f32,
     orient_kd: f32,
-    // La valeur maximale de la commande en sortie
+    /// La valeur maximale de la commande en sortie
     max_output: u16,
-    // La consigne de la roue gauche exprimée en millimètres
+    /// La consigne de la roue gauche exprimée en millimètres
     left_goal: f32,
-    // La consigne de la roue droite exprimée en millimètres
+    /// La consigne de la roue droite exprimée en millimètres
     right_goal: f32,
 }
 
@@ -29,7 +29,6 @@ impl Pid {
     /// * des coefficients de l'asservissement
     /// * d'une valeur maximale de sortie (la valeur du registre ARR du timer qui gère la PWM par
     /// exemple)
-    /// * deux roues codeuses
     pub(crate) fn new(
         pos_kp: f32,
         pos_kd: f32,
@@ -51,7 +50,7 @@ impl Pid {
     }
 
     pub(crate) fn set_max_output(&mut self, max_output: u16) {
-
+        self.max_output = max_output;
     }
 
     pub(crate) fn set_goal(&mut self, left: f32, right: f32) {
