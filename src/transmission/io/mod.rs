@@ -102,7 +102,7 @@ mod tests {
             valves: [IOState::On; 6],
         };
         println!("{}", a.to_string::<U2048>().unwrap());
-        let b = Pneumatic::from_json_slice(
+        let _b = Pneumatic::from_json_slice(
             "{\"pump_intensity\":[0,0],\"pumps\":[\"On\",\"On\"],\"valves\":[\"Off\",\"On\",\"On\",\"Off\",\"On\",\"Off\"]}"
                 .as_bytes()).unwrap();
     }

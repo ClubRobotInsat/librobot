@@ -527,8 +527,8 @@ mod test {
             ..Default::default()
         };
 
-        let mut motor_left = DummyMotor::new();
-        let mut motor_right = DummyMotor::new();
+        let motor_left = DummyMotor::new();
+        let motor_right = DummyMotor::new();
         let qei_left = QeiManager::new(motor_left.clone());
         let qei_right = QeiManager::new(motor_right.clone());
         let mut pid = RealWorldPid::new(qei_left, qei_right, &pid_parameters);
