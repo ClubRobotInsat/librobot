@@ -95,11 +95,7 @@ mod test {
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: 223.0,
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            ..Default::default()
         };
 
         for i in 0..1025 {
@@ -121,11 +117,7 @@ mod test {
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: 223.0,
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            ..Default::default()
         };
 
         for i in 0..1025 {
@@ -147,11 +139,7 @@ mod test {
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: 223.0,
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            ..Default::default()
         };
 
         odom.set_position_and_angle(
@@ -182,11 +170,7 @@ mod test {
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: 223.0,
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            ..Default::default()
         };
 
         for i in 0..921 {
@@ -225,11 +209,7 @@ mod test {
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: 223.0,
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            ..Default::default()
         };
 
         for i in 0..1843 {
@@ -262,11 +242,7 @@ mod test {
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
             inter_axial_length: 223.0,
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            ..Default::default()
         };
 
         odom.update(1024, 1024, &params);

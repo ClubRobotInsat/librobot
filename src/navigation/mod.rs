@@ -66,7 +66,7 @@ where
 }
 
 /// Les paramètres d'un PID
-#[derive(Debug, Default, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct PIDParameters {
     /// Le rayon d'une roue codeuse en mm
     pub coder_radius: f32,
@@ -90,6 +90,23 @@ pub struct PIDParameters {
     pub orient_kd: f32,
     /// La valeur maximale en sortie
     pub max_output: u16,
+}
+
+impl Default for PIDParameters {
+    fn default() -> PIDParameters {
+        PIDParameters {
+            coder_radius: 10.0,
+            left_wheel_coef: 1.0,
+            right_wheel_coef: 1.0,
+            ticks_per_turn: 1024,
+            inter_axial_length: 100.0,
+            pos_kp: 1.0,
+            pos_kd: 0.0,
+            orient_kp: 1.0,
+            orient_kd: 1.0,
+            max_output: 100,
+        }
+    }
 }
 
 impl<L, R> core::fmt::Debug for RealWorldPid<L, R>
@@ -283,11 +300,7 @@ mod test {
             right_wheel_coef: 0.5,
             ticks_per_turn: 1024,
             inter_axial_length: 300.0,
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            ..Default::default()
         };
 
         let (left_dist, right_dist) = pid_parameters.ticks_to_distance(1280, 1280);
@@ -311,11 +324,7 @@ mod test {
             right_wheel_coef: 0.5,
             ticks_per_turn: 1024,
             inter_axial_length: 300.0,
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            ..Default::default()
         };
         let (left_ticks, right_ticks) =
             pid_parameters.distance_to_ticks(MilliMeter(235), MilliMeter(235));
@@ -344,6 +353,7 @@ mod test {
             orient_kp: 1.0,
             orient_kd: 1.0,
             max_output: 100,
+            ..Default::default()
         };
 
         let mut motor_left = DummyMotor::new();
@@ -430,6 +440,7 @@ mod test {
             orient_kp: 1.0,
             orient_kd: 0.0,
             max_output: 100,
+            ..Default::default()
         };
 
         let mut motor_left = DummyMotor::new();
@@ -486,6 +497,7 @@ mod test {
             orient_kp: 1.0,
             orient_kd: 0.0,
             max_output: 100,
+            ..Default::default()
         };
 
         let mut motor_left = DummyMotor::new();
