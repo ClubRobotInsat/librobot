@@ -237,7 +237,7 @@ where
 
     /// Retourne `true` si le robot est bloqué, c'est à dire s'il reçoit une
     /// commande mais ne change pas de position.
-    pub fn is_robot_blocked(&self) -> bool {
+    pub fn is_robot_blocked(&self, command_threshold: u16, distance_threshold: f32) -> bool {
         let (left_ticks, right_ticks) = self.get_qei_ticks();
         let (left_diff, right_diff) = self.params.ticks_to_distance(
             left_ticks - self.last_ticks.0,
@@ -245,18 +245,15 @@ where
         );
         let (left_command, right_command) = self.get_command();
 
-        let threshold1 = 4;
-        let threshold2 = 10.0;
-
-        if left_command.get_value() > threshold1 {
+        if left_command.get_value() > command_threshold {
             match left_command {
-                Command::Front(_) => left_diff < threshold2,
-                Command::Back(_) => left_diff > -threshold2,
+                Command::Front(_) => left_diff < distance_threshold,
+                Command::Back(_) => left_diff > -distance_threshold,
             }
-        } else if right_command.get_value() > threshold1 {
+        } else if right_command.get_value() > command_threshold {
             match right_command {
-                Command::Front(_) => right_diff < threshold2,
-                Command::Back(_) => right_diff > -threshold2,
+                Command::Front(_) => right_diff < distance_threshold,
+                Command::Back(_) => right_diff > -distance_threshold,
             }
         } else { false }
     }
