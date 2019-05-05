@@ -237,6 +237,12 @@ where
 
     /// Retourne `true` si le robot est bloqué, c'est à dire s'il reçoit une
     /// commande mais ne change pas de position.
+    ///
+    /// `command_threshold`: Si une commande reçue par un des moteurs est
+    /// supérieure à cette valeur on considère que le robot reçoit une commande.
+    ///
+    /// `distance_threshold`: Si la distance parcourue par le robot est inférieure
+    /// à cette valeur on considère que le robot n'a pas changé de position.
     pub fn is_robot_blocked(&self, command_threshold: u16, distance_threshold: f32) -> bool {
         let (left_ticks, right_ticks) = self.get_qei_ticks();
         let (left_diff, right_diff) = self.params.ticks_to_distance(
@@ -259,6 +265,10 @@ where
     }
 
     /// Retourne `true` si le pid a atteind sa consigne en position et angle
+    ///
+    /// `lin_accuracy`: L'erreur autorisée sur la position du robot.
+    ///
+    /// `ang_accuracy`: L'erreur autorisée sur l'angle du robot.
     pub fn is_goal_reached(&self, lin_accuracy: f32, ang_accuracy: f32) -> bool {
         let (left_ticks, right_ticks) = self.get_qei_ticks();
         let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
