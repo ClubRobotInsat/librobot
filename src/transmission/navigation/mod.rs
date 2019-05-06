@@ -9,11 +9,11 @@ use serde_json_core::ser::{to_string, Error as SError};
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]
 pub struct NavigationFrame {
     /// position x du robot en dixieme de millimetres
-    pub x: u16,
+    pub x: i32,
     /// position y du robot en dixieme de millimetres
-    pub y: u16,
+    pub y: i32,
     /// angle du robot en centaines de microradians
-    pub angle: u16,
+    pub angle: i32,
     /// vrai si le robot ne peut pas avancer
     pub blocked: bool,
     /// vrai si l'asservissement est operationnel
@@ -33,6 +33,19 @@ pub struct NavigationFrame {
     pub counter: u16,
     /// vrai si le robot a fini d'executer la commande
     pub moving_done: bool,
+
+    /// vitesse longitudinale max du robot en mm/s
+    pub max_lin_speed: u16,
+    /// vitesse angulaire max du robot en milliradian/s
+    pub max_ang_speed: u16,
+    /// précision longitudinale du robot (à partir de laquelle on considère
+    /// qu'une commande de déplacement longitudinal a été réalisée)
+    /// en dixième de millimetre
+    pub lin_accuracy: u16,
+    /// précision angulaire du robot (à partir de laquelle on considère qu'une
+    /// commande de déplacement angulaire a été réalisée)
+    /// en dixième de milliradian
+    pub ang_accuracy: u16,
 }
 
 /// Les differentes commandes que le déplacement peut effectuer
@@ -96,10 +109,16 @@ mod test {
             reset: true,
             x: 0,
             y: 0,
+            max_lin_speed: 1000,
+            max_ang_speed: 3000,
+            lin_accuracy: 40,
+            ang_accuracy: 20,
         };
         let strd: String<N> = nav.to_string().unwrap();
         let data =
-            "{\"angle\":0,\"args_cmd1\":500,\"args_cmd2\":0,\"asserv_on_off\":true,\"blocked\":false,\"command\":\"GoForward\",\"counter\":1,\"led\":true,\"moving_done\":false,\"reset\":true,\"x\":0,\"y\":0}";
+            "{\"angle\":0,\"args_cmd1\":500,\"args_cmd2\":0,\"asserv_on_off\":true,\"blocked\":false,\"command\":\"GoForward\",\
+            \"counter\":1,\"led\":true,\"moving_done\":false,\"reset\":true,\"x\":0,\"y\":0,\"max_lin_speed\":1000,\"max_ang_speed\":3000,\
+            \"lin_accuracy\":40,\"ang_accuracy\":20}";
         let nav2 = NavigationFrame::from_json_slice(strd.as_bytes()).unwrap();
         assert_eq!(nav, nav2);
         let nav3 = NavigationFrame::from_json_slice(data.as_bytes()).unwrap();

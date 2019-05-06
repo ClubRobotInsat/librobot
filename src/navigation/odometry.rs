@@ -14,11 +14,11 @@ pub(crate) struct Odometry {
     left_ticks: i64,
     /// ticks à droite
     right_ticks: i64,
-    /// Coordonnee en x du robot
+    /// Coordonnee en x du robot en mm
     x: f32,
-    /// Coordonnee en y du robot
+    /// Coordonnee en y du robot en mm
     y: f32,
-    /// Angle du robot en millirad
+    /// Angle du robot en radians
     angle: f32,
 }
 
@@ -36,10 +36,12 @@ impl Odometry {
     }
 
     /// Définit les informations de position du robot.
-    pub(crate) fn set_position(&mut self, new_pos: Coord, new_angle: i64) {
+    /// `new_pos` est exprimé en millimètres, `new_angle` est exprimé
+    /// en milliradians
+    pub(crate) fn set_position_and_angle(&mut self, new_pos: Coord, new_angle: i64) {
         self.x = new_pos.x.as_millimeters() as f32;
         self.y = new_pos.y.as_millimeters() as f32;
-        self.angle = new_angle as f32;
+        self.angle = new_angle as f32 / 1000.0;
     }
 
     pub(crate) fn get_position(&self) -> Coord {
@@ -51,7 +53,7 @@ impl Odometry {
 
     /// Retourne l'angle du robot en milliradians
     pub(crate) fn get_angle(&self) -> i64 {
-        self.angle.round() as i64
+        (self.angle * 1000.0).round() as i64
     }
 
     /// Met à jour l'odometrie à partir de la variation des ticks
@@ -61,11 +63,9 @@ impl Odometry {
             params.ticks_to_distance(left_ticks - self.left_ticks, right_ticks - self.right_ticks);
 
         let dist_diff = (dist_left + dist_right) / 2.0;
-        let angle_diff =
-            (dist_left - dist_right) * 1000.0 / params.inter_axial_length.as_millimeters() as f32;
+        let angle_diff = (dist_left - dist_right) / params.inter_axial_length;
 
-        let anglef = self.angle / 1000.0;
-        let (sin, cos) = anglef.sin_cos();
+        let (sin, cos) = self.angle.sin_cos();
         let dxf = dist_diff * cos;
         let dyf = dist_diff * sin;
         self.x += dxf;
@@ -90,16 +90,12 @@ mod test {
         let mut odom = Odometry::new();
 
         let params = PIDParameters {
-            coder_radius: MilliMeter(31),
+            coder_radius: 31.0,
             left_wheel_coef: 1.0,
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
-            inter_axial_length: MilliMeter(223),
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            inter_axial_length: 223.0,
+            ..Default::default()
         };
 
         for i in 0..1025 {
@@ -116,16 +112,12 @@ mod test {
         let mut odom = Odometry::new();
 
         let params = PIDParameters {
-            coder_radius: MilliMeter(31),
+            coder_radius: 31.0,
             left_wheel_coef: 1.0,
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
-            inter_axial_length: MilliMeter(223),
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            inter_axial_length: 223.0,
+            ..Default::default()
         };
 
         for i in 0..1025 {
@@ -142,19 +134,15 @@ mod test {
         let mut odom = Odometry::new();
 
         let params = PIDParameters {
-            coder_radius: MilliMeter(31),
+            coder_radius: 31.0,
             left_wheel_coef: 1.0,
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
-            inter_axial_length: MilliMeter(223),
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            inter_axial_length: 223.0,
+            ..Default::default()
         };
 
-        odom.set_position(
+        odom.set_position_and_angle(
             Coord {
                 x: MilliMeter(0),
                 y: MilliMeter(0),
@@ -169,6 +157,7 @@ mod test {
 
         assert_eq!(robot_pos.x, MilliMeter(138));
         assert_eq!(robot_pos.y, MilliMeter(138));
+        assert_eq!(odom.get_angle(), 3141 / 4);
     }
 
     #[test]
@@ -176,16 +165,12 @@ mod test {
         let mut odom = Odometry::new();
 
         let params = PIDParameters {
-            coder_radius: MilliMeter(31),
+            coder_radius: 31.0,
             left_wheel_coef: 1.0,
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
-            inter_axial_length: MilliMeter(223),
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            inter_axial_length: 223.0,
+            ..Default::default()
         };
 
         for i in 0..921 {
@@ -219,16 +204,12 @@ mod test {
         let mut odom = Odometry::new();
 
         let params = PIDParameters {
-            coder_radius: MilliMeter(31),
+            coder_radius: 31.0,
             left_wheel_coef: 1.0,
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
-            inter_axial_length: MilliMeter(223),
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            inter_axial_length: 223.0,
+            ..Default::default()
         };
 
         for i in 0..1843 {
@@ -256,16 +237,12 @@ mod test {
         let mut odom = Odometry::new();
 
         let params = PIDParameters {
-            coder_radius: MilliMeter(31),
+            coder_radius: 31.0,
             left_wheel_coef: 1.0,
             right_wheel_coef: 1.0,
             ticks_per_turn: 1024,
-            inter_axial_length: MilliMeter(223),
-            pos_kp: 1.0,
-            pos_kd: 1.0,
-            orient_kp: 1.0,
-            orient_kd: 1.0,
-            max_output: 100,
+            inter_axial_length: 223.0,
+            ..Default::default()
         };
 
         odom.update(1024, 1024, &params);
