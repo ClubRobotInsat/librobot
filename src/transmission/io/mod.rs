@@ -14,15 +14,6 @@ pub enum TriggerState {
     Waiting,
 }
 
-/// L'état d'un port IO : On ou Off
-#[derive(Debug, Copy, Clone, Deserialize, Serialize)]
-pub enum IOState {
-    /// Le port est activé (état haut)
-    On,
-    /// Le port est éteinds (état bas)
-    Off,
-}
-
 /// Représente l'état du buzzer
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum BuzzerState {
@@ -50,13 +41,15 @@ pub struct IO {
 /// L'état du robot du point de vue pneumatique
 pub struct Pneumatic {
     /// L'état des pompes (elles sont sur le même pin, même si il y en a 2)
-    pub pumps: [IOState; 2],
+    /// `true` => la pompe est allumée
+    pub pumps: [bool; 2],
 
     /// L'intensité tirée par les pompes (plus c'est elevé, plus on rencontre de résistance pour pomper)
     pub pump_intensity: [u16; 2],
 
     /// L'état des vannes
-    pub valves: [IOState; 6],
+    /// `true` => la vanne est ouverte
+    pub valves: [bool; 6],
 }
 
 impl Jsonizable for IO {
@@ -97,13 +90,14 @@ mod tests {
     #[test]
     fn io_ser() {
         let a = Pneumatic {
-            pumps: [IOState::On, IOState::Off],
+            pumps: [true, false],
             pump_intensity: [50, 66],
-            valves: [IOState::On; 6],
+            valves: [false; 6],
         };
         println!("{}", a.to_string::<U2048>().unwrap());
+
         let b = Pneumatic::from_json_slice(
-            "{\"pump_intensity\":[0,0],\"pumps\":[\"On\",\"On\"],\"valves\":[\"Off\",\"On\",\"On\",\"Off\",\"On\",\"Off\"]}"
+            "{\"pump_intensity\":[0,0],\"pumps\":[true,false],\"valves\":[true,false,true,false,true,true]}"
                 .as_bytes()).unwrap();
     }
 
