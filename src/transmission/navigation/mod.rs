@@ -1,9 +1,13 @@
 //! Décrit l'API pour interagir avec la carte déplacement
 
+mod params;
+
 use crate::transmission::Jsonizable;
 use heapless::{ArrayLength, String};
 use serde_json_core::de::{from_slice, Error as DError};
 use serde_json_core::ser::{to_string, Error as SError};
+
+pub use self::params::NavigationParametersFrame;
 
 /// Trame contenant les informations echangees entre l'info et l'elec.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Deserialize, Serialize)]

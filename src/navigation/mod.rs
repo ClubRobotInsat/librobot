@@ -35,6 +35,7 @@ use core::f32;
 #[allow(unused_imports)]
 use libm::F32Ext;
 
+use crate::transmission::navigation::NavigationParametersFrame;
 use embedded_hal::Qei;
 use qei::QeiManager;
 
@@ -155,6 +156,17 @@ where
         }
     }
 
+    /// Renvoie les paramètres actuels du déplacement.
+    pub fn get_params(&self) -> &PIDParameters {
+        return &self.params;
+    }
+
+    /// Met à jour les paramètres du déplacement.
+    pub fn set_params(&mut self, params: &PIDParameters) {
+        self.params = params.clone();
+        // TODO update PID
+    }
+
     /// Mets à jour le PID et la position du robot
     pub fn update(&mut self) {
         self.last_ticks = self.get_qei_ticks();
@@ -163,8 +175,7 @@ where
         let (left_ticks, right_ticks) = self.get_qei_ticks();
         let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
         self.command = self.internal_pid.update(left_dist, right_dist);
-        self.odometry
-            .update(left_ticks, right_ticks, &mut self.params);
+        self.odometry.update(left_ticks, right_ticks, &self.params);
     }
 
     /// Renvoie la commande courante
@@ -283,6 +294,28 @@ where
 }
 
 impl PIDParameters {
+    /// Détermine les nouveaux paramètres lorsque la carte a reçu une trame de paramètres.
+    /// Les paramètres sont initialisés à partir de `base` et sont ensuite modifiés par
+    /// rapport aux informations de la trame.
+    pub fn from_frame(
+        base: &PIDParameters,
+        params_frame: &NavigationParametersFrame,
+    ) -> PIDParameters {
+        const RADIX: f32 = 2e16f32;
+        PIDParameters {
+            coder_radius: params_frame.coder_radius as f32 / 10.0,
+            left_wheel_coef: base.left_wheel_coef,
+            right_wheel_coef: params_frame.right_wheel_coef as f32 / RADIX,
+            ticks_per_turn: base.ticks_per_turn,
+            inter_axial_length: params_frame.inter_axial_length as f32 / 10.0,
+            pos_kp: params_frame.pos_kp as f32 / RADIX,
+            pos_kd: params_frame.pos_kd as f32 / RADIX,
+            orient_kp: params_frame.orient_kp as f32 / RADIX,
+            orient_kd: params_frame.orient_kd as f32 / RADIX,
+            max_output: base.max_output,
+        }
+    }
+
     /// Convertit les ticks des QEI en distance parcourue par les roues codeuses (en mm)
     pub fn ticks_to_distance(&self, left_ticks: i64, right_ticks: i64) -> (f32, f32) {
         let distance_per_wheel_turn = self.coder_radius * 2.0 * core::f32::consts::PI;
