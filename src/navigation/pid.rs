@@ -21,6 +21,10 @@ pub(crate) struct Pid {
     left_goal: f32,
     /// La consigne de la roue droite exprimée en millimètres
     right_goal: f32,
+    /// Si `false` le robot n'est pas asservi en longitudinal
+    asserv_lin: bool,
+    /// Si `false` le robot n'est pas asservi en angulaire
+    asserv_ang: bool,
 }
 
 // Implémentation du PID
@@ -46,7 +50,14 @@ impl Pid {
             max_output,
             left_goal: 0.0,
             right_goal: 0.0,
+            asserv_lin: true,
+            asserv_ang: true,
         }
+    }
+
+    pub(crate) fn enable_asserv(&mut self, asserv_lin: bool, asserv_ang: bool) {
+        self.asserv_lin = asserv_lin;
+        self.asserv_ang = asserv_ang;
     }
 
     pub(crate) fn set_max_output(&mut self, max_output: u16) {
@@ -125,10 +136,9 @@ impl Pid {
         self.old_left_dist = new_left_dist;
         self.old_right_dist = new_right_dist;
         // Calcul du PID
-        let position_cmd =
-            self.update_position_command(new_left_dist, new_right_dist, left_speed, right_speed);
+        let position_cmd = if self.asserv_lin { self.update_position_command(new_left_dist, new_right_dist, left_speed, right_speed) } else { 0.0 };
         let (orientation_cmd_left, orientation_cmd_right) =
-            self.update_orientation_command(new_left_dist, new_right_dist, left_speed, right_speed);
+            if self.asserv_ang { self.update_orientation_command(new_left_dist, new_right_dist, left_speed, right_speed) } else { (0.0, 0.0 ) };
 
         let left_cmd = position_cmd + orientation_cmd_left;
         let right_cmd = position_cmd + orientation_cmd_right;

@@ -178,6 +178,12 @@ where
         self.odometry.update(left_ticks, right_ticks, &self.params);
     }
 
+    /// Active ou désactive l'asservissement longitudinal et / ou l'asservissement
+    /// angulaire.
+    pub fn enable_asserv(&mut self, asserv_lin: bool, asserv_ang: bool) {
+        self.internal_pid.enable_asserv(asserv_lin, asserv_ang);
+    }
+
     /// Renvoie la commande courante
     pub fn get_command(&self) -> (Command, Command) {
         self.command

@@ -18,10 +18,16 @@ pub struct NavigationFrame {
     pub y: i32,
     /// angle du robot en centaines de microradians
     pub angle: i32,
+    /// distance parcourue par la roue gauche en millimètres
+    pub left_dist: i32,
+    /// distance parcourue par la roue droite en millimètres
+    pub right_dist: i32,
     /// vrai si le robot ne peut pas avancer
     pub blocked: bool,
-    /// vrai si l'asservissement est operationnel
-    pub asserv_on_off: bool,
+    /// vrai si l'asservissement longitudinal est operationnel
+    pub asserv_lin: bool,
+    /// vrai si l'asservissement angulaire est opérationnel
+    pub asserv_ang: bool,
     /// eclairage des LEDs du module (si elles sont presentes)
     pub led: bool,
     /// si vrai, l'info peut fixer (x, y, angle)
@@ -94,9 +100,9 @@ impl Jsonizable for NavigationFrame {
 mod test {
     use super::{NavigationCommand, NavigationFrame};
     use crate::transmission::Jsonizable;
-    use heapless::consts::U256;
+    use heapless::consts::U512;
     use heapless::String;
-    type N = U256;
+    type N = U512;
 
     #[test]
     fn ser_deser_navigation_forward() {
@@ -104,7 +110,10 @@ mod test {
             angle: 0,
             args_cmd1: 500,
             args_cmd2: 0,
-            asserv_on_off: true,
+            left_dist: 0,
+            right_dist: 0,
+            asserv_lin: true,
+            asserv_ang: true,
             blocked: false,
             command: NavigationCommand::GoForward,
             counter: 1,
@@ -120,9 +129,9 @@ mod test {
         };
         let strd: String<N> = nav.to_string().unwrap();
         let data =
-            "{\"angle\":0,\"args_cmd1\":500,\"args_cmd2\":0,\"asserv_on_off\":true,\"blocked\":false,\"command\":\"GoForward\",\
+            "{\"angle\":0,\"args_cmd1\":500,\"args_cmd2\":0,\"blocked\":false,\"command\":\"GoForward\",\
             \"counter\":1,\"led\":true,\"moving_done\":false,\"reset\":true,\"x\":0,\"y\":0,\"max_lin_speed\":1000,\"max_ang_speed\":3000,\
-            \"lin_accuracy\":40,\"ang_accuracy\":20}";
+            \"lin_accuracy\":40,\"ang_accuracy\":20,\"asserv_lin\":true,\"asserv_ang\":true,\"left_dist\":0,\"right_dist\":0}";
         let nav2 = NavigationFrame::from_json_slice(strd.as_bytes()).unwrap();
         assert_eq!(nav, nav2);
         let nav3 = NavigationFrame::from_json_slice(data.as_bytes()).unwrap();
