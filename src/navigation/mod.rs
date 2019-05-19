@@ -204,6 +204,13 @@ where
         (self.qei.0.count(), self.qei.1.count())
     }
 
+    /// Renvoie la distance parcourue par les roues codeuses à gauche et à droite,
+    /// en millimètres.
+    pub fn get_wheel_dist(&self) -> (f32, f32) {
+        let (left_ticks, right_ticks) = self.get_qei_ticks();
+        self.params.ticks_to_distance(left_ticks, right_ticks)
+    }
+
     /// Définit la position actuelle de l'odométrie
     pub fn set_position_and_angle(&mut self, position: Coord, angle: i64) {
         self.odometry.set_position_and_angle(position, angle);
