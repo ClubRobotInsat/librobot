@@ -309,6 +309,7 @@ impl PIDParameters {
         PIDParameters {
             coder_radius: params_frame.coder_radius as f32 / 10.0,
             left_wheel_coef: base.left_wheel_coef,
+            // TODO keep the sign on right_wheel_coef
             right_wheel_coef: params_frame.right_wheel_coef as f32 / RADIX,
             ticks_per_turn: base.ticks_per_turn,
             inter_axial_length: params_frame.inter_axial_length as f32 / 10.0,
@@ -416,6 +417,11 @@ mod test {
             "{} should be 1276",
             right_ticks
         );
+    }
+
+    #[test]
+    fn test_parameters_from_frame() {
+        // TODO
     }
 
     #[test]
