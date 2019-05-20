@@ -21,12 +21,14 @@
 //!+-----------------------+
 //! ```
 
+mod blocking;
 mod motor;
 mod odometry;
 mod pid;
 
 pub use self::motor::*;
 
+use self::blocking::Blocking;
 use self::odometry::Odometry;
 use self::pid::*;
 use crate::units::MilliMeter;
@@ -65,7 +67,7 @@ where
     params: PIDParameters,
     qei: (QeiManager<L>, QeiManager<R>),
     command: (Command, Command),
-    last_ticks: (i64, i64),
+    blocking: Blocking,
 }
 
 /// Les paramètres d'un PID
@@ -93,6 +95,10 @@ pub struct PIDParameters {
     pub orient_kd: f32,
     /// La valeur maximale en sortie
     pub max_output: u16,
+    /// Seuil de commande pour le bloquage
+    pub command_threshold: u16,
+    /// Seuil de distance pour le bloquage
+    pub distance_threshold: f32,
 }
 
 impl Default for PIDParameters {
@@ -108,6 +114,8 @@ impl Default for PIDParameters {
             orient_kp: 1.0,
             orient_kd: 1.0,
             max_output: 100,
+            command_threshold: 100,
+            distance_threshold: 0.1,
         }
     }
 }
@@ -152,7 +160,7 @@ where
             params: params.clone(),
             qei: (qei_left, qei_right),
             command: (Command::Front(0), Command::Front(0)),
-            last_ticks: (0, 0),
+            blocking: Blocking::new(params.command_threshold, params.distance_threshold),
         }
     }
 
@@ -169,7 +177,6 @@ where
 
     /// Mets à jour le PID et la position du robot
     pub fn update(&mut self) {
-        self.last_ticks = self.get_qei_ticks();
         self.qei.0.sample_unwrap();
         self.qei.1.sample_unwrap();
         let (left_ticks, right_ticks) = self.get_qei_ticks();
@@ -261,33 +268,17 @@ where
 
     /// Retourne `true` si le robot est bloqué, c'est à dire s'il reçoit une
     /// commande mais ne change pas de position.
-    ///
-    /// `command_threshold`: Si une commande reçue par un des moteurs est
-    /// supérieure à cette valeur on considère que le robot reçoit une commande.
-    ///
-    /// `distance_threshold`: Si la distance parcourue par le robot est inférieure
-    /// à cette valeur on considère que le robot n'a pas changé de position.
-    pub fn is_robot_blocked(&self, command_threshold: u16, distance_threshold: f32) -> bool {
-        let (left_ticks, right_ticks) = self.get_qei_ticks();
-        let (left_diff, right_diff) = self.params.ticks_to_distance(
-            left_ticks - self.last_ticks.0,
-            right_ticks - self.last_ticks.1,
-        );
-        let (left_command, right_command) = self.get_command();
+    pub fn is_robot_blocked(&self) -> bool {
+        self.blocking.blocked()
+    }
 
-        if left_command.get_value() > command_threshold {
-            match left_command {
-                Command::Front(_) => left_diff < distance_threshold,
-                Command::Back(_) => left_diff > -distance_threshold,
-            }
-        } else if right_command.get_value() > command_threshold {
-            match right_command {
-                Command::Front(_) => right_diff < distance_threshold,
-                Command::Back(_) => right_diff > -distance_threshold,
-            }
-        } else {
-            false
-        }
+    /// Met à jour la detection du bloquage du robot.
+    pub fn update_blocking(&mut self) {
+        let (left_ticks, right_ticks) = self.get_qei_ticks();
+        self.blocking.update(
+            self.get_command(),
+            self.params.ticks_to_distance(left_ticks, right_ticks),
+        );
     }
 
     /// Retourne `true` si le pid a atteind sa consigne en position et angle
@@ -326,6 +317,8 @@ impl PIDParameters {
             orient_kp: params_frame.orient_kp as f32 / RADIX,
             orient_kd: params_frame.orient_kd as f32 / RADIX,
             max_output: base.max_output,
+            command_threshold: base.command_threshold,
+            distance_threshold: base.distance_threshold,
         }
     }
 
@@ -618,11 +611,6 @@ mod test {
 
         assert!((goall1 - 0.0).abs() <= 1.0, "{} should be {}", goall1, 0);
         assert!((goalr1 + 0.0).abs() <= 1.0, "{} should be {}", goalr1, 0);
-    }
-
-    #[test]
-    fn test_real_world_pid_blocked() {
-        // TODO
     }
 
     #[test]

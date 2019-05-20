@@ -136,9 +136,16 @@ impl Pid {
         self.old_left_dist = new_left_dist;
         self.old_right_dist = new_right_dist;
         // Calcul du PID
-        let position_cmd = if self.asserv_lin { self.update_position_command(new_left_dist, new_right_dist, left_speed, right_speed) } else { 0.0 };
-        let (orientation_cmd_left, orientation_cmd_right) =
-            if self.asserv_ang { self.update_orientation_command(new_left_dist, new_right_dist, left_speed, right_speed) } else { (0.0, 0.0 ) };
+        let position_cmd = if self.asserv_lin {
+            self.update_position_command(new_left_dist, new_right_dist, left_speed, right_speed)
+        } else {
+            0.0
+        };
+        let (orientation_cmd_left, orientation_cmd_right) = if self.asserv_ang {
+            self.update_orientation_command(new_left_dist, new_right_dist, left_speed, right_speed)
+        } else {
+            (0.0, 0.0)
+        };
 
         let left_cmd = position_cmd + orientation_cmd_left;
         let right_cmd = position_cmd + orientation_cmd_right;
