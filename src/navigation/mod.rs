@@ -305,7 +305,7 @@ impl PIDParameters {
         base: &PIDParameters,
         params_frame: &NavigationParametersFrame,
     ) -> PIDParameters {
-        const RADIX: f32 = 2e16f32;
+        const RADIX: f32 = 65536f32;
         PIDParameters {
             coder_radius: params_frame.coder_radius as f32 / 10.0,
             left_wheel_coef: base.left_wheel_coef,
