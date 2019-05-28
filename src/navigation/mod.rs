@@ -73,6 +73,7 @@ where
 /// Les paramètres d'un PID
 #[derive(Debug, Copy, Clone)]
 pub struct PIDParameters {
+    // Odometrie
     /// Le rayon d'une roue codeuse en mm
     pub coder_radius: f32,
     /// Coefficient de correction de la roue codeuse gauche, notamment
@@ -85,16 +86,34 @@ pub struct PIDParameters {
     pub ticks_per_turn: u16,
     /// La distance entre les roues codeuses en mm
     pub inter_axial_length: f32,
+
+    // PID
     /// Le coefficient proportionnel sur la position
     pub pos_kp: f32,
     /// Le coefficient dérivé sur la position
     pub pos_kd: f32,
+    /// Le coefficient proportionnel sur la vitesse longitudinale
+    pub pos_speed_kp: f32,
     /// Le coefficient proportionnel sur l'orientation
     pub orient_kp: f32,
     /// Le coefficient dérivée sur l'orientation
     pub orient_kd: f32,
+    /// Le coefficient proportionnel sur la vitesse angulaire
+    pub orient_speed_kp: f32,
+    /// Temps d'échantillonnage en millisecondes
+    pub te: f32,
+    /// Vitesse longitudinale max en m/s
+    pub max_lin_speed: f32,
+    /// Vitesse angulaire max en radians/s
+    pub max_ang_speed: f32,
+    /// maximum acceleration en m/s^2
+    pub max_lin_acc: f32,
+    /// maximum acceleration en rad/s^2
+    pub max_ang_acc: f32,
     /// La valeur maximale en sortie
     pub max_output: u16,
+
+    // Bloquage
     /// Seuil de commande pour le bloquage
     pub command_threshold: u16,
     /// Seuil de distance pour le bloquage
@@ -111,8 +130,15 @@ impl Default for PIDParameters {
             inter_axial_length: 100.0,
             pos_kp: 1.0,
             pos_kd: 0.0,
+            pos_speed_kp: 100.0,
             orient_kp: 1.0,
-            orient_kd: 1.0,
+            orient_kd: 0.0,
+            orient_speed_kp: 100.0,
+            max_lin_speed: 0.45,
+            max_ang_speed: 0.20,
+            max_lin_acc: 1.0,
+            max_ang_acc: 1.0,
+            te: 1.0,
             max_output: 100,
             command_threshold: 100,
             distance_threshold: 0.1,
@@ -151,10 +177,15 @@ where
         RealWorldPid {
             internal_pid: PolarController::new(
                 params.pos_kp,
-                params.pos_kd,
                 params.orient_kp,
-                params.orient_kd,
+                params.pos_speed_kp,
+                params.orient_speed_kp,
                 params.max_output,
+                params.te,
+                params.max_lin_speed,
+                params.max_ang_speed,
+                params.max_lin_acc,
+                params.max_ang_acc,
             ),
             odometry: Odometry::new(),
             params: params.clone(),
@@ -192,6 +223,15 @@ where
         self.internal_pid.enable_control(lin_ctrl, ang_ctrl);
     }
 
+    pub fn set_speed(&mut self, lin_speed: f32, ang_speed: f32) {
+        self.internal_pid.set_max_speed(lin_speed, ang_speed);
+    }
+
+    /// Définit la position actuelle de l'odométrie
+    pub fn set_position_and_angle(&mut self, position: Coord, angle: i64) {
+        self.odometry.set_position_and_angle(position, angle);
+    }
+
     /// Renvoie la commande courante
     pub fn get_command(&self) -> (Command, Command) {
         self.command
@@ -217,11 +257,6 @@ where
     pub fn get_wheel_dist(&self) -> (f32, f32) {
         let (left_ticks, right_ticks) = self.get_qei_ticks();
         self.params.ticks_to_distance(left_ticks, right_ticks)
-    }
-
-    /// Définit la position actuelle de l'odométrie
-    pub fn set_position_and_angle(&mut self, position: Coord, angle: i64) {
-        self.odometry.set_position_and_angle(position, angle);
     }
 
     /// Ordonne au robot d'avancer de `distance` (en mm)
@@ -318,9 +353,7 @@ impl PIDParameters {
             pos_kd: params_frame.pos_kd as f32 / RADIX,
             orient_kp: params_frame.orient_kp as f32 / RADIX,
             orient_kd: params_frame.orient_kd as f32 / RADIX,
-            max_output: base.max_output,
-            command_threshold: base.command_threshold,
-            distance_threshold: base.distance_threshold,
+            ..base.clone()
         }
     }
 

@@ -64,7 +64,17 @@ impl PID {
 pub(crate) struct PolarController {
     linear_control: PID,
     angular_control: PID,
+    linear_speed_control: PID,
+    angular_speed_control: PID,
+
+    current_command: (f32, f32),
+
     max_output: u16,
+    te: f32,
+    max_lin_speed: f32,
+    max_ang_speed: f32,
+    max_lin_acc: f32,
+    max_ang_acc: f32,
     /// Si `false` le robot n'est pas asservi en longitudinal
     linear_control_enabled: bool,
     /// Si `false` le robot n'est pas asservi en angulaire
@@ -74,15 +84,28 @@ pub(crate) struct PolarController {
 impl PolarController {
     pub(crate) fn new(
         pos_kp: f32,
-        pos_kd: f32,
         orient_kp: f32,
-        orient_kd: f32,
+        pos_speed_kp: f32,
+        orient_speed_kp: f32,
         max_output: u16,
+        te: f32,
+        max_lin_speed: f32,
+        max_ang_speed: f32,
+        max_lin_acc: f32,
+        max_ang_acc: f32,
     ) -> Self {
         PolarController {
-            linear_control: PID::new(pos_kp, pos_kd, 0.0),
-            angular_control: PID::new(orient_kp, orient_kd, 0.0),
+            linear_control: PID::new(pos_kp, 0.0, 0.0),
+            angular_control: PID::new(orient_kp, 0.0, 0.0),
+            linear_speed_control: PID::new(pos_speed_kp, 0.0, 0.0),
+            angular_speed_control: PID::new(orient_speed_kp, 0.0, 0.0),
+            current_command: (0.0, 0.0),
             max_output,
+            te,
+            max_lin_speed,
+            max_ang_speed,
+            max_lin_acc: max_lin_acc / 1000.0,
+            max_ang_acc: max_ang_acc / 1000.0,
             linear_control_enabled: true,
             angular_control_enabled: true,
         }
@@ -91,6 +114,11 @@ impl PolarController {
     pub(crate) fn enable_control(&mut self, lin_ctrl: bool, ang_ctrl: bool) {
         self.linear_control_enabled = lin_ctrl;
         self.angular_control_enabled = ang_ctrl;
+    }
+
+    pub(crate) fn set_max_speed(&mut self, lin_speed: f32, ang_speed: f32) {
+        self.max_lin_speed = lin_speed;
+        self.max_ang_speed = ang_speed;
     }
 
     pub(crate) fn set_max_output(&mut self, max_output: u16) {
@@ -120,10 +148,7 @@ impl PolarController {
 
     pub(crate) fn get_left_right_goal(&self) -> (f32, f32) {
         let (lin, ang) = self.get_lin_ang_goal();
-        (
-            lin - ang / 2.0,
-            lin + ang / 2.0,
-        )
+        (lin - ang / 2.0, lin + ang / 2.0)
     }
 
     pub(crate) fn get_lin_ang_goal(&self) -> (f32, f32) {
@@ -133,30 +158,60 @@ impl PolarController {
         )
     }
 
+    /// Retourne `speed` si `abs(speed) < max_speed`, et `sgn(speed) * max_speed` sinon.
+    fn clamp_speed(speed: f32, last_speed: f32, max_speed: f32, max_acc: f32) -> f32 {
+        // Clamp according to max_acc
+        // TODO
+
+        // Clamp according to max speed
+        if speed.abs() < max_speed {
+            speed
+        } else if speed < 0. {
+            - max_speed
+        } else {
+            max_speed
+        }
+    }
+
     pub(crate) fn update(&mut self, left_dist: f32, right_dist: f32) -> (Command, Command) {
         // Mise à jour de la mémoire du PID
         let lin_val = (left_dist + right_dist) / 2.0;
         let ang_val = right_dist - left_dist;
 
+        let lin_speed = (lin_val - self.linear_control.current) / self.te;
+        let ang_speed = (ang_val - self.angular_control.current) / self.te;
+
+            // Calcul du PID
         self.linear_control.update(lin_val);
         self.angular_control.update(ang_val);
 
-        // Calcul du PID
-        let position_cmd = if self.linear_control_enabled {
-            self.linear_control.get_command()
+        let lin_speed_goal = Self::clamp_speed(self.linear_control.get_command(), self.linear_speed_control.current, self.max_lin_speed, self.max_ang_acc * self.te);
+        let ang_speed_goal = Self::clamp_speed(self.angular_control.get_command(), self.angular_speed_control.current, self.max_ang_speed, self.max_ang_acc * self.te);
+
+        self.linear_speed_control.set_goal(lin_speed_goal);
+        self.angular_speed_control.set_goal(ang_speed_goal);
+
+        self.linear_speed_control.update(lin_speed);
+        self.angular_speed_control.update(ang_speed);
+
+        let lin_speed_cmd = if self.linear_control_enabled {
+            self.linear_speed_control.get_command()
         } else {
             0.0
         };
-        let orientation_cmd = if self.angular_control_enabled {
-            self.angular_control.get_command()
+        let ang_speed_cmd = if self.angular_control_enabled {
+            self.angular_speed_control.get_command()
         } else {
             0.0
         };
 
+        let left_cmd = - lin_speed_cmd + ang_speed_cmd;
+        let right_cmd = - lin_speed_cmd - ang_speed_cmd;
+
         // Truncate result
         (
-            Command::truncate(-position_cmd + orientation_cmd, self.max_output),
-            Command::truncate(-position_cmd - orientation_cmd, self.max_output),
+            Command::truncate(left_cmd, self.max_output),
+            Command::truncate(right_cmd, self.max_output),
         )
     }
 }
