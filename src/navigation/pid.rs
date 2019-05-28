@@ -120,10 +120,7 @@ impl PolarController {
 
     pub(crate) fn get_left_right_goal(&self) -> (f32, f32) {
         let (lin, ang) = self.get_lin_ang_goal();
-        (
-            lin - ang / 2.0,
-            lin + ang / 2.0,
-        )
+        (lin - ang / 2.0, lin + ang / 2.0)
     }
 
     pub(crate) fn get_lin_ang_goal(&self) -> (f32, f32) {
@@ -131,6 +128,16 @@ impl PolarController {
             self.linear_control.get_goal(),
             self.angular_control.get_goal(),
         )
+    }
+
+    pub(crate) fn clamp(val: f32, threshold: f32) -> f32 {
+        if val > threshold {
+            threshold
+        } else if val < -threshold {
+            -threshold
+        } else {
+            val
+        }
     }
 
     pub(crate) fn update(&mut self, left_dist: f32, right_dist: f32) -> (Command, Command) {
@@ -143,12 +150,12 @@ impl PolarController {
 
         // Calcul du PID
         let position_cmd = if self.linear_control_enabled {
-            self.linear_control.get_command()
+            Self::clamp(self.linear_control.get_command(), self.max_output as f32)
         } else {
             0.0
         };
         let orientation_cmd = if self.angular_control_enabled {
-            self.angular_control.get_command()
+            Self::clamp(self.angular_control.get_command(), self.max_output as f32)
         } else {
             0.0
         };
