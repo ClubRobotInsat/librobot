@@ -50,13 +50,10 @@ pub struct IO {
 /// L'état du robot du point de vue pneumatique
 pub struct Pneumatic {
     /// L'état des pompes (elles sont sur le même pin, même si il y en a 2)
-    pub pumps: [IOState; 2],
-
-    /// L'intensité tirée par les pompes (plus c'est elevé, plus on rencontre de résistance pour pomper)
-    pub pump_intensity: [u16; 2],
+    pub pump: IOState,
 
     /// L'état des vannes
-    pub valves: [IOState; 6],
+    pub valves: [IOState; 4],
 }
 
 impl Jsonizable for IO {
@@ -97,14 +94,18 @@ mod tests {
     #[test]
     fn io_ser() {
         let a = Pneumatic {
-            pumps: [IOState::On, IOState::Off],
-            pump_intensity: [50, 66],
-            valves: [IOState::On; 6],
+            pump: IOState::On,
+            valves: [IOState::On; 4],
         };
         println!("{}", a.to_string::<U2048>().unwrap());
         let b = Pneumatic::from_json_slice(
-            "{\"pump_intensity\":[0,0],\"pumps\":[\"On\",\"On\"],\"valves\":[\"Off\",\"On\",\"On\",\"Off\",\"On\",\"Off\"]}"
-                .as_bytes()).unwrap();
+            "{\"pump\":\"On\",\"valves\":[\"Off\",\"On\",\"On\",\"Off\"]}".as_bytes(),
+        )
+        .unwrap();
+        let c = IO::from_json_slice(
+            "{\"tirette\":\"Triggered\",\"buzzer\":\"PlayErrorSound\"}".as_bytes(),
+        )
+        .unwrap();
     }
 
 }
