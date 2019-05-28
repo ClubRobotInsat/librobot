@@ -13,6 +13,21 @@ pub enum Command {
 }
 
 impl Command {
+    /// Crée une commande à partir de la valeur `val` sans dépasser `max`
+    pub fn truncate(val: f32, max: u16) -> Command {
+        if val.is_sign_positive() {
+            if val > f32::from(max) {
+                Command::Front(max)
+            } else {
+                Command::Front(val as u16)
+            }
+        } else if -val > f32::from(max) {
+            Command::Back(max)
+        } else {
+            Command::Back((-val) as u16)
+        }
+    }
+
     /// Renvoie l'intensité de la commande
     pub fn get_value(&self) -> u16 {
         match self {

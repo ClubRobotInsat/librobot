@@ -7,28 +7,71 @@ use crate::navigation::motor::Command;
 #[allow(unused_imports)]
 use libm::F32Ext;
 
-/// Le PID du robot
-pub(crate) struct Pid {
-    old_left_dist: f32,
-    old_right_dist: f32,
-    pos_kp: f32,
-    pos_kd: f32,
-    orient_kp: f32,
-    orient_kd: f32,
-    /// La valeur maximale de la commande en sortie
-    max_output: u16,
-    /// La consigne de la roue gauche exprimée en millimètres
-    left_goal: f32,
-    /// La consigne de la roue droite exprimée en millimètres
-    right_goal: f32,
+#[allow(non_snake_case)]
+pub(crate) struct PID {
+    kp: f32,
+    kd: f32,
+    ki: f32,
+    /// Temps d'échantillonnage du PID
+    I: f32,
+    current: f32,
+    current_error: f32,
+    goal: f32,
+    command: f32,
 }
 
-// Implémentation du PID
-impl Pid {
-    /// Crée un nouveau PID à partir :
-    /// * des coefficients de l'asservissement
-    /// * d'une valeur maximale de sortie (la valeur du registre ARR du timer qui gère la PWM par
-    /// exemple)
+impl PID {
+    pub(crate) fn new(kp: f32, kd: f32, ki: f32) -> PID {
+        PID {
+            kp,
+            kd,
+            ki,
+            I: 0.0,
+            current: 0.0,
+            current_error: 0.0,
+            goal: 0.0,
+            command: 0.0,
+        }
+    }
+
+    pub(crate) fn set_goal(&mut self, goal: f32) {
+        self.goal = goal;
+    }
+
+    pub(crate) fn increment_goal(&mut self, inc: f32) {
+        self.goal += inc;
+    }
+
+    pub(crate) fn get_goal(&self) -> f32 {
+        self.goal
+    }
+
+    pub(crate) fn get_command(&self) -> f32 {
+        self.command
+    }
+
+    pub(crate) fn update(&mut self, val: f32) {
+        let error = val - self.goal;
+        let d_error = error - self.current_error;
+        self.I += error + self.current_error;
+        self.command = error * self.kp + self.I * self.ki + d_error * self.kd;
+        self.current_error = error;
+    }
+}
+
+/// Controlleur composé d'un asservissement en position et d'un
+/// asservissement en angle.
+pub(crate) struct PolarController {
+    linear_control: PID,
+    angular_control: PID,
+    max_output: u16,
+    /// Si `false` le robot n'est pas asservi en longitudinal
+    linear_control_enabled: bool,
+    /// Si `false` le robot n'est pas asservi en angulaire
+    angular_control_enabled: bool,
+}
+
+impl PolarController {
     pub(crate) fn new(
         pos_kp: f32,
         pos_kd: f32,
@@ -36,104 +79,92 @@ impl Pid {
         orient_kd: f32,
         max_output: u16,
     ) -> Self {
-        Pid {
-            old_left_dist: 0.0,
-            old_right_dist: 0.0,
-            pos_kp,
-            pos_kd,
-            orient_kp,
-            orient_kd,
+        PolarController {
+            linear_control: PID::new(pos_kp, pos_kd, 0.0),
+            angular_control: PID::new(orient_kp, orient_kd, 0.0),
             max_output,
-            left_goal: 0.0,
-            right_goal: 0.0,
+            linear_control_enabled: true,
+            angular_control_enabled: true,
         }
+    }
+
+    pub(crate) fn enable_control(&mut self, lin_ctrl: bool, ang_ctrl: bool) {
+        self.linear_control_enabled = lin_ctrl;
+        self.angular_control_enabled = ang_ctrl;
     }
 
     pub(crate) fn set_max_output(&mut self, max_output: u16) {
         self.max_output = max_output;
     }
 
-    pub(crate) fn set_goal(&mut self, left: f32, right: f32) {
-        self.left_goal = left;
-        self.right_goal = right;
+    pub(crate) fn set_left_right_goal(&mut self, left: f32, right: f32) {
+        self.linear_control.set_goal((left + right) / 2.);
+        self.angular_control.set_goal(right - left);
     }
 
-    pub(crate) fn increment_goal(&mut self, left: f32, right: f32) {
-        self.left_goal += left;
-        self.right_goal += right;
+    pub(crate) fn set_linear_goal(&mut self, goal: f32) {
+        self.linear_control.set_goal(goal);
     }
 
-    /// Renvoie la consigne du PID en mm sous la forme (gauche,droite).
-    pub fn get_goal(&self) -> (f32, f32) {
-        (self.left_goal, self.right_goal)
+    pub(crate) fn increment_linear_goal(&mut self, inc: f32) {
+        self.linear_control.increment_goal(inc);
     }
 
-    /// Renvoie la nouvelle consigne à appliquer aux deux roues pour atteindre la commande en position
-    fn update_position_command(
-        &self,
-        left_dist: f32,
-        right_dist: f32,
-        left_speed: f32,
-        right_speed: f32,
-    ) -> f32 {
-        let dist = (left_dist + right_dist) / 2.;
-        let speed = (left_speed + right_speed) / 2.;
-        let position_order = (self.left_goal + self.right_goal) / 2.;
-        let diff = position_order - dist;
-        (diff * self.pos_kp) - self.pos_kd * speed
+    pub(crate) fn set_angular_goal(&mut self, goal: f32) {
+        self.angular_control.set_goal(goal);
     }
 
-    /// Renvoie les nouvelles consignes à appliquer aux deux roues pour atteindre la commande en orientation
-    fn update_orientation_command(
-        &self,
-        left_dist: f32,
-        right_dist: f32,
-        left_speed: f32,
-        right_speed: f32,
-    ) -> (f32, f32) {
-        let orientation = right_dist - left_dist;
-        let speed = right_speed - left_speed;
-        let orientation_order = self.right_goal - self.left_goal;
-        let diff = orientation_order - orientation;
-        let cmd = (diff * self.orient_kp) - self.orient_kd * speed;
-        (-cmd, cmd)
+    pub(crate) fn increment_angular_goal(&mut self, inc: f32) {
+        self.angular_control.increment_goal(inc);
     }
 
-    fn truncate(&self, val: f32) -> Command {
-        if val.is_sign_positive() {
-            if val > f32::from(self.max_output) {
-                Command::Front(self.max_output)
-            } else {
-                Command::Front(val as u16)
-            }
-        } else if -val > f32::from(self.max_output) {
-            Command::Back(self.max_output)
+    pub(crate) fn get_left_right_goal(&self) -> (f32, f32) {
+        let (lin, ang) = self.get_lin_ang_goal();
+        (lin - ang / 2.0, lin + ang / 2.0)
+    }
+
+    pub(crate) fn get_lin_ang_goal(&self) -> (f32, f32) {
+        (
+            self.linear_control.get_goal(),
+            self.angular_control.get_goal(),
+        )
+    }
+
+    pub(crate) fn clamp(val: f32, threshold: f32) -> f32 {
+        if val > threshold {
+            threshold
+        } else if val < -threshold {
+            -threshold
         } else {
-            Command::Back((-val) as u16)
+            val
         }
     }
 
-    /// Renvoie la nouvelle consigne à appliquer aux roues pour le pid
-    /// L'algorithme est issue de [cette](https://www.rcva.fr/10-ans-dexperience/9/) page internet.
     pub(crate) fn update(&mut self, left_dist: f32, right_dist: f32) -> (Command, Command) {
         // Mise à jour de la mémoire du PID
-        let (new_left_dist, new_right_dist) = (left_dist, right_dist);
-        let (left_speed, right_speed) = (
-            new_left_dist - self.old_left_dist,
-            new_right_dist - self.old_right_dist,
-        );
-        self.old_left_dist = new_left_dist;
-        self.old_right_dist = new_right_dist;
-        // Calcul du PID
-        let position_cmd =
-            self.update_position_command(new_left_dist, new_right_dist, left_speed, right_speed);
-        let (orientation_cmd_left, orientation_cmd_right) =
-            self.update_orientation_command(new_left_dist, new_right_dist, left_speed, right_speed);
+        let lin_val = (left_dist + right_dist) / 2.0;
+        let ang_val = right_dist - left_dist;
 
-        let left_cmd = position_cmd + orientation_cmd_left;
-        let right_cmd = position_cmd + orientation_cmd_right;
-        // Truncate resul
-        (self.truncate(left_cmd), self.truncate(right_cmd))
+        self.linear_control.update(lin_val);
+        self.angular_control.update(ang_val);
+
+        // Calcul du PID
+        let position_cmd = if self.linear_control_enabled {
+            Self::clamp(self.linear_control.get_command(), self.max_output as f32)
+        } else {
+            0.0
+        };
+        let orientation_cmd = if self.angular_control_enabled {
+            Self::clamp(self.angular_control.get_command(), self.max_output as f32)
+        } else {
+            0.0
+        };
+
+        // Truncate result
+        (
+            Command::truncate(-position_cmd + orientation_cmd, self.max_output),
+            Command::truncate(-position_cmd - orientation_cmd, self.max_output),
+        )
     }
 }
 
@@ -143,7 +174,7 @@ mod test {
     use qei::QeiManager;
 
     use crate::navigation::motor::test::DummyMotor;
-    use crate::navigation::pid::Pid;
+    use crate::navigation::pid::PolarController;
 
     fn get_qei<T>(qei: &mut QeiManager<T>) -> i64
     where
@@ -160,9 +191,9 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_goal(9000.0, 9000.0);
+        pid.set_linear_goal(9000.0);
         for _ in 0..999 {
             let (cmdl, cmdr) = pid.update(
                 get_qei(&mut qei_left) as f32,
@@ -174,8 +205,18 @@ mod test {
             motor_right.update();
         }
         // Erreur inférieure à 0.1%
-        assert!((motor_left.get_real_position() - 9000).abs() <= 9);
-        assert!((motor_right.get_real_position() - 9000).abs() <= 9);
+        assert!(
+            (motor_left.get_real_position() - 9000).abs() <= 9,
+            "{} should be {}",
+            motor_left.get_real_position(),
+            9000
+        );
+        assert!(
+            (motor_right.get_real_position() - 9000).abs() <= 9,
+            "{} should be {}",
+            motor_left.get_real_position(),
+            9000
+        );
     }
 
     #[test]
@@ -184,9 +225,9 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_goal(-9137.0, -9137.0);
+        pid.set_linear_goal(-9137.0);
         for _ in 0..999 {
             let (cmdl, cmdr) = pid.update(
                 get_qei(&mut qei_left) as f32,
@@ -198,8 +239,18 @@ mod test {
             motor_right.update();
         }
         // Erreur inférieure à 0.1%
-        assert!((motor_left.get_real_position() + 9137).abs() <= 9);
-        assert!((motor_right.get_real_position() + 9137).abs() <= 9);
+        assert!(
+            (motor_left.get_real_position() + 9137).abs() <= 9,
+            "{} should be {}",
+            motor_left.get_real_position(),
+            -9137
+        );
+        assert!(
+            (motor_right.get_real_position() + 9137).abs() <= 9,
+            "{} should be {}",
+            motor_left.get_real_position(),
+            -9137
+        );
     }
 
     #[test]
@@ -208,9 +259,9 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_goal(-733. / 2., 733. / 2.);
+        pid.set_angular_goal(733.);
         for _ in 0..999 {
             let (cmdl, cmdr) = pid.update(
                 get_qei(&mut qei_left) as f32,
@@ -242,9 +293,9 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = Pid::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
 
-        pid.set_goal(733. / 2., -733. / 2.);
+        pid.set_angular_goal(-733.);
         for _ in 0..999 {
             let (cmdl, cmdr) = pid.update(
                 get_qei(&mut qei_left) as f32,

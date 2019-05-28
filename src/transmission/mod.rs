@@ -119,6 +119,9 @@ pub mod id {
     /// L'ID de la carte pneumatique
     pub const ID_PNEUMATIC: u16 = 5;
 
+    /// L'ID des paramètres de la navigation
+    pub const ID_NAVIGATION_PARAMETERS: u16 = 10;
+
     /// Le port auquel il faut ajouter l'ID pour envoyer des trames à l'informatique
     pub const INFO_LISTENING_PORT: u16 = 5000;
 

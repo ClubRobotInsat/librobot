@@ -21,12 +21,14 @@
 //!+-----------------------+
 //! ```
 
+mod blocking;
 mod motor;
 mod odometry;
 mod pid;
 
 pub use self::motor::*;
 
+use self::blocking::Blocking;
 use self::odometry::Odometry;
 use self::pid::*;
 use crate::units::MilliMeter;
@@ -35,6 +37,7 @@ use core::f32;
 #[allow(unused_imports)]
 use libm::F32Ext;
 
+use crate::transmission::navigation::NavigationParametersFrame;
 use embedded_hal::Qei;
 use qei::QeiManager;
 
@@ -59,12 +62,12 @@ where
     L: Qei<Count = u16>,
     R: Qei<Count = u16>,
 {
-    internal_pid: Pid,
+    internal_pid: PolarController,
     odometry: Odometry,
     params: PIDParameters,
     qei: (QeiManager<L>, QeiManager<R>),
     command: (Command, Command),
-    last_ticks: (i64, i64),
+    blocking: Blocking,
 }
 
 /// Les paramètres d'un PID
@@ -92,6 +95,10 @@ pub struct PIDParameters {
     pub orient_kd: f32,
     /// La valeur maximale en sortie
     pub max_output: u16,
+    /// Seuil de commande pour le bloquage
+    pub command_threshold: u16,
+    /// Seuil de distance pour le bloquage
+    pub distance_threshold: f32,
 }
 
 impl Default for PIDParameters {
@@ -107,6 +114,8 @@ impl Default for PIDParameters {
             orient_kp: 1.0,
             orient_kd: 1.0,
             max_output: 100,
+            command_threshold: 100,
+            distance_threshold: 0.1,
         }
     }
 }
@@ -140,7 +149,7 @@ where
     ///     * rayon d'une roue codeuse en mm
     pub fn new(qei_left: QeiManager<L>, qei_right: QeiManager<R>, params: &PIDParameters) -> Self {
         RealWorldPid {
-            internal_pid: Pid::new(
+            internal_pid: PolarController::new(
                 params.pos_kp,
                 params.pos_kd,
                 params.orient_kp,
@@ -151,20 +160,36 @@ where
             params: params.clone(),
             qei: (qei_left, qei_right),
             command: (Command::Front(0), Command::Front(0)),
-            last_ticks: (0, 0),
+            blocking: Blocking::new(params.command_threshold, params.distance_threshold),
         }
+    }
+
+    /// Renvoie les paramètres actuels du déplacement.
+    pub fn get_params(&self) -> &PIDParameters {
+        return &self.params;
+    }
+
+    /// Met à jour les paramètres du déplacement.
+    pub fn set_params(&mut self, params: &PIDParameters) {
+        self.params = params.clone();
+        // TODO update PID
     }
 
     /// Mets à jour le PID et la position du robot
     pub fn update(&mut self) {
-        self.last_ticks = self.get_qei_ticks();
         self.qei.0.sample_unwrap();
         self.qei.1.sample_unwrap();
         let (left_ticks, right_ticks) = self.get_qei_ticks();
         let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
         self.command = self.internal_pid.update(left_dist, right_dist);
-        self.odometry
-            .update(left_ticks, right_ticks, &mut self.params);
+        self.odometry.update(left_ticks, right_ticks, &self.params);
+    }
+
+    /// Active ou désactive l'asservissement longitudinal et / ou l'asservissement
+    /// angulaire.
+    // TODO change name to enable_control
+    pub fn enable_asserv(&mut self, lin_ctrl: bool, ang_ctrl: bool) {
+        self.internal_pid.enable_control(lin_ctrl, ang_ctrl);
     }
 
     /// Renvoie la commande courante
@@ -187,6 +212,13 @@ where
         (self.qei.0.count(), self.qei.1.count())
     }
 
+    /// Renvoie la distance parcourue par les roues codeuses à gauche et à droite,
+    /// en millimètres.
+    pub fn get_wheel_dist(&self) -> (f32, f32) {
+        let (left_ticks, right_ticks) = self.get_qei_ticks();
+        self.params.ticks_to_distance(left_ticks, right_ticks)
+    }
+
     /// Définit la position actuelle de l'odométrie
     pub fn set_position_and_angle(&mut self, position: Coord, angle: i64) {
         self.odometry.set_position_and_angle(position, angle);
@@ -194,19 +226,18 @@ where
 
     /// Ordonne au robot d'avancer de `distance` (en mm)
     pub fn forward(&mut self, distance: f32) {
-        self.internal_pid.increment_goal(distance, distance);
+        self.internal_pid.increment_linear_goal(distance);
     }
 
     /// Ordonne au robot de reculer de `distance` (en mm)
     pub fn backward(&mut self, distance: f32) {
-        self.internal_pid.increment_goal(-distance, -distance);
+        self.internal_pid.increment_linear_goal(-distance);
     }
 
     /// Ordonne au robot de tourner de `angle` (en milliradians)
     pub fn rotate(&mut self, angle: f32) {
-        let turn_distance = angle * self.params.inter_axial_length * (0.001 / 2.);
-        self.internal_pid
-            .increment_goal(-turn_distance, turn_distance);
+        let turn_distance = angle * self.params.inter_axial_length * 0.001;
+        self.internal_pid.increment_angular_goal(turn_distance);
     }
 
     /// Ordonne au robot de tourner de façon à s'orienter vers l'angle `angle`
@@ -232,49 +263,33 @@ where
     pub fn stop(&mut self) {
         let (left_ticks, right_ticks) = self.get_qei_ticks();
         let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
-        self.internal_pid.set_goal(left_dist, right_dist);
+        self.internal_pid.set_left_right_goal(left_dist, right_dist);
     }
 
     /// Retourne `true` si le robot est bloqué, c'est à dire s'il reçoit une
     /// commande mais ne change pas de position.
-    ///
-    /// `command_threshold`: Si une commande reçue par un des moteurs est
-    /// supérieure à cette valeur on considère que le robot reçoit une commande.
-    ///
-    /// `distance_threshold`: Si la distance parcourue par le robot est inférieure
-    /// à cette valeur on considère que le robot n'a pas changé de position.
-    pub fn is_robot_blocked(&self, command_threshold: u16, distance_threshold: f32) -> bool {
-        let (left_ticks, right_ticks) = self.get_qei_ticks();
-        let (left_diff, right_diff) = self.params.ticks_to_distance(
-            left_ticks - self.last_ticks.0,
-            right_ticks - self.last_ticks.1,
-        );
-        let (left_command, right_command) = self.get_command();
+    pub fn is_robot_blocked(&self) -> bool {
+        self.blocking.blocked()
+    }
 
-        if left_command.get_value() > command_threshold {
-            match left_command {
-                Command::Front(_) => left_diff < distance_threshold,
-                Command::Back(_) => left_diff > -distance_threshold,
-            }
-        } else if right_command.get_value() > command_threshold {
-            match right_command {
-                Command::Front(_) => right_diff < distance_threshold,
-                Command::Back(_) => right_diff > -distance_threshold,
-            }
-        } else {
-            false
-        }
+    /// Met à jour la detection du bloquage du robot.
+    pub fn update_blocking(&mut self) {
+        let (left_ticks, right_ticks) = self.get_qei_ticks();
+        self.blocking.update(
+            self.get_command(),
+            self.params.ticks_to_distance(left_ticks, right_ticks),
+        );
     }
 
     /// Retourne `true` si le pid a atteind sa consigne en position et angle
     ///
-    /// `lin_accuracy`: L'erreur autorisée sur la position du robot.
+    /// `lin_accuracy`: L'erreur autorisée sur la position du robot en millimètres.
     ///
-    /// `ang_accuracy`: L'erreur autorisée sur l'angle du robot.
+    /// `ang_accuracy`: L'erreur autorisée sur l'angle du robot en milliradians.
     pub fn is_goal_reached(&self, lin_accuracy: f32, ang_accuracy: f32) -> bool {
         let (left_ticks, right_ticks) = self.get_qei_ticks();
         let (left_dist, right_dist) = self.params.ticks_to_distance(left_ticks, right_ticks);
-        let (left_goal, right_goal) = self.internal_pid.get_goal();
+        let (left_goal, right_goal) = self.internal_pid.get_left_right_goal();
         let lin_gap = (left_dist + right_dist - left_goal - right_goal) / 2.0;
         let ang_gap =
             (left_dist - right_dist - left_goal + right_goal) / self.params.inter_axial_length;
@@ -282,7 +297,33 @@ where
     }
 }
 
+// TODO change name
 impl PIDParameters {
+    /// Détermine les nouveaux paramètres lorsque la carte a reçu une trame de paramètres.
+    /// Les paramètres sont initialisés à partir de `base` et sont ensuite modifiés par
+    /// rapport aux informations de la trame.
+    pub fn from_frame(
+        base: &PIDParameters,
+        params_frame: &NavigationParametersFrame,
+    ) -> PIDParameters {
+        const RADIX: f32 = 65536f32;
+        PIDParameters {
+            coder_radius: params_frame.coder_radius as f32 / 10.0,
+            left_wheel_coef: base.left_wheel_coef,
+            // TODO keep the sign on right_wheel_coef
+            right_wheel_coef: params_frame.right_wheel_coef as f32 / RADIX,
+            ticks_per_turn: base.ticks_per_turn,
+            inter_axial_length: params_frame.inter_axial_length as f32 / 10.0,
+            pos_kp: params_frame.pos_kp as f32 / RADIX,
+            pos_kd: params_frame.pos_kd as f32 / RADIX,
+            orient_kp: params_frame.orient_kp as f32 / RADIX,
+            orient_kd: params_frame.orient_kd as f32 / RADIX,
+            max_output: base.max_output,
+            command_threshold: base.command_threshold,
+            distance_threshold: base.distance_threshold,
+        }
+    }
+
     /// Convertit les ticks des QEI en distance parcourue par les roues codeuses (en mm)
     pub fn ticks_to_distance(&self, left_ticks: i64, right_ticks: i64) -> (f32, f32) {
         let distance_per_wheel_turn = self.coder_radius * 2.0 * core::f32::consts::PI;
@@ -380,6 +421,11 @@ mod test {
     }
 
     #[test]
+    fn test_parameters_from_frame() {
+        // TODO
+    }
+
+    #[test]
     fn test_goal_reached() {
         let pid_parameters = PIDParameters {
             coder_radius: 30.0,
@@ -401,12 +447,12 @@ mod test {
         let qei_right = QeiManager::new(motor_right.clone());
         let mut pid = RealWorldPid::new(qei_left, qei_right, &pid_parameters);
 
-        pid.internal_pid.set_goal(10.0, 10.0);
+        pid.internal_pid.set_left_right_goal(10.0, 10.0);
 
         assert!(pid.is_goal_reached(11.0, 0.1));
         assert!(!pid.is_goal_reached(4.0, 0.1));
 
-        pid.internal_pid.set_goal(10.0, -10.0);
+        pid.internal_pid.set_left_right_goal(10.0, -10.0);
         motor_left.set_position(49); // 9 mm
         motor_right.set_position(-65); // 12 mm
 
@@ -490,7 +536,7 @@ mod test {
 
         pid.rotate(785.0); // PI / 4 en milliradians
 
-        let (goall, goalr) = pid.internal_pid.get_goal();
+        let (goall, goalr) = pid.internal_pid.get_left_right_goal();
 
         assert!((goall + 117.0).abs() <= 1.0, "{} should be {}", goall, -117);
         assert!((goalr - 117.0).abs() <= 1.0, "{} should be {}", goalr, 117);
@@ -554,7 +600,7 @@ mod test {
         ); // 15 * pi / 8
         pid.rotate_absolute(392.0); // rotation relative de pi/4
 
-        let (goall, goalr) = pid.internal_pid.get_goal();
+        let (goall, goalr) = pid.internal_pid.get_left_right_goal();
 
         assert!((goall + 117.0).abs() <= 1.0, "{} should be {}", goall, -117);
         assert!((goalr - 117.0).abs() <= 1.0, "{} should be {}", goalr, 117);
@@ -568,15 +614,10 @@ mod test {
         ); // 23 * pi / 8
         pid.rotate_absolute(1963.0); // rotation relative de -pi/4
 
-        let (goall1, goalr1) = pid.internal_pid.get_goal();
+        let (goall1, goalr1) = pid.internal_pid.get_left_right_goal();
 
         assert!((goall1 - 0.0).abs() <= 1.0, "{} should be {}", goall1, 0);
         assert!((goalr1 + 0.0).abs() <= 1.0, "{} should be {}", goalr1, 0);
-    }
-
-    #[test]
-    fn test_real_world_pid_blocked() {
-        // TODO
     }
 
     #[test]

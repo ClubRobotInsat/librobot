@@ -98,11 +98,11 @@ mod tests {
             valves: [IOState::On; 4],
         };
         println!("{}", a.to_string::<U2048>().unwrap());
-        let b = Pneumatic::from_json_slice(
+        let _b = Pneumatic::from_json_slice(
             "{\"pump\":\"On\",\"valves\":[\"Off\",\"On\",\"On\",\"Off\"]}".as_bytes(),
         )
         .unwrap();
-        let c = IO::from_json_slice(
+        let _c = IO::from_json_slice(
             "{\"tirette\":\"Triggered\",\"buzzer\":\"PlayErrorSound\"}".as_bytes(),
         )
         .unwrap();
