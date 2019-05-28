@@ -63,7 +63,7 @@ impl Odometry {
             params.ticks_to_distance(left_ticks - self.left_ticks, right_ticks - self.right_ticks);
 
         let dist_diff = (dist_left + dist_right) / 2.0;
-        let angle_diff = (dist_left - dist_right) / params.inter_axial_length;
+        let angle_diff = (dist_right - dist_left) / params.inter_axial_length;
 
         let (sin, cos) = self.angle.sin_cos();
         let dxf = dist_diff * cos;
@@ -192,10 +192,10 @@ mod test {
             0
         );
         assert!(
-            (odom.get_angle() - 1571).abs() <= 3,
+            (odom.get_angle() + 1571).abs() <= 3,
             "{} should be {}",
             odom.get_angle(),
-            1571
+            -1571
         );
     }
 
@@ -225,10 +225,10 @@ mod test {
             111
         );
         assert!(
-            (robot_pos.y.as_millimeters() - 111).abs() <= 1,
+            (robot_pos.y.as_millimeters() + 111).abs() <= 1,
             "{} should be {}",
             robot_pos.y.as_millimeters(),
-            111
+            -111
         );
     }
 
