@@ -6,14 +6,14 @@ use w5500::*;
 /// La socket utilisee pour l'UDP
 pub const SOCKET_UDP: Socket = Socket::Socket0;
 
-#[cfg(feature = "primary")]
 fn get_subnet() -> u8 {
-    1
-}
-
-#[cfg(feature = "secondary")]
-fn get_subnet() -> u8 {
-    2
+    if cfg!(feature = "primary") {
+        1
+    } else if cfg!(feature = "secondary") {
+        2
+    } else {
+        unreachable!()
+    }
 }
 
 /// Initialise la connexion ethernet pour permettre une communication

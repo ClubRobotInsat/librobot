@@ -28,5 +28,6 @@ cc = { version = "~1.0", default-features = false}
 [features]
 
 default = ["primary"]
-primary = []
-secondary = []
+primary = ["robot_selected"]
+secondary = ["robot_selected"]
+robot_selected = []

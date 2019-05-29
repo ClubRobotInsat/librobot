@@ -18,3 +18,8 @@ pub use crate::transmission::*;
 pub mod navigation;
 pub mod transmission;
 pub mod units;
+
+#[cfg(not(feature = "robot_selected"))]
+fn error_message() {
+    compile_error!("You need to specify the robot using --features = \"primary\" or \"secondary\"")
+}
