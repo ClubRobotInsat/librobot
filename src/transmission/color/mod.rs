@@ -1,13 +1,25 @@
+//! Module permettant l'envoi d'une couleur au robot
+
 use crate::transmission::Jsonizable;
 use heapless::{ArrayLength, String};
 use serde_json_core::de::{from_slice, Error as DError};
 use serde_json_core::ser::{to_string, Error as SError};
 
+/// La couleur vue par le robot
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
 pub enum Color {
+    /// Rouge
     Red,
+    /// Vert
     Green,
+    /// Bleue
     Blue,
+}
+
+impl Color {
+    fn from_rgb_values(red: u8, green: u8, blue: u8) -> Color {
+        unimplemented!()
+    }
 }
 
 impl Jsonizable for Color {
