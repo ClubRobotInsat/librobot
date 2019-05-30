@@ -16,6 +16,7 @@ serde_derive = {version="1.0", default_features = false}
 serde-json-core = { git = "https://github.com/japaric/serde-json-core" }
 heapless = "0.4.2"
 w5500 = "0.1.5"
+micromath="0.3.1"
 
 [dependencies.arrayvec]
 default-features = false
