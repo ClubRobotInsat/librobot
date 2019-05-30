@@ -1,0 +1,93 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="rustdoc"><meta name="description" content="API documentation for the Rust `transmission` mod in crate `librobot`."><meta name="keywords" content="rust, rustlang, rust-lang, transmission"><title>librobot::transmission - Rust</title><link rel="stylesheet" type="text/css" href="../../normalize.css"><link rel="stylesheet" type="text/css" href="../../rustdoc.css" id="mainThemeStyle"><link rel="stylesheet" type="text/css" href="../../dark.css"><link rel="stylesheet" type="text/css" href="../../light.css" id="themeStyle"><script src="../../storage.js"></script><noscript><link rel="stylesheet" href="../../noscript.css"></noscript><link rel="shortcut icon" href="../../favicon.ico"><style type="text/css">#crate-search{background-image:url("../../down-arrow.svg");}</style></head><body class="rustdoc mod"><!--[if lte IE 8]><div class="warning">This old browser is unsupported and will most likely display funky things.</div><![endif]--><nav class="sidebar"><div class="sidebar-menu">&#9776;</div><a href='../../librobot/index.html'><div class='logo-container'><img src='../../rust-logo.png' alt='logo'></div></a><p class='location'>Module transmission</p><div class="sidebar-elems"><div class="block items"><ul><li><a href="#modules">Modules</a></li><li><a href="#enums">Enums</a></li><li><a href="#constants">Constants</a></li><li><a href="#traits">Traits</a></li><li><a href="#types">Type Definitions</a></li></ul></div><p class='location'><a href='../index.html'>librobot</a></p><script>window.sidebarCurrent = {name: 'transmission', ty: 'mod', relpath: '../'};</script><script defer src="../sidebar-items.js"></script></div></nav><div class="theme-picker"><button id="theme-picker" aria-label="Pick another theme!"><img src="../../brush.svg" width="18" alt="Pick another theme!"></button><div id="theme-choices"></div></div><script src="../../theme.js"></script><nav class="sub"><form class="search-form js-only"><div class="search-container"><div><select id="crate-search"><option value="All crates">All crates</option></select><input class="search-input" name="search" autocomplete="off" spellcheck="false" placeholder="Click or press ‘S’ to search, ‘?’ for more options…" type="search"></div><a id="settings-menu" href="../../settings.html"><img src="../../wheel.svg" width="18" alt="Change settings"></a></div></form></nav><section id="main" class="content"><h1 class='fqn'><span class='out-of-band'><span id='render-detail'><a id="toggle-all-docs" href="javascript:void(0)" title="collapse all docs">[<span class='inner'>&#x2212;</span>]</a></span><a class='srclink' href='../../src/librobot/transmission/mod.rs.html#1-173' title='goto source code'>[src]</a></span><span class='in-band'>Module <a href='../index.html'>librobot</a>::<wbr><a class="mod" href=''>transmission</a></span></h1><div class='docblock'><p>Ensemble des types, fonctions et traits qui permettent la communication electronique &lt;-&gt; informatique.</p>
+<p>Le code qui permet de transformer des octets en structures et inversemment est écrit en C.
+Pour chaque type de messages, il y a une structure C (que vous ne voyez pas car elle est cachée)
+et une structure Rust qui correspond exactement à celle en C.</p>
+<p>Au niveau de la librairie vous ne voyez ni l'une, ni l'autre car on expose une structure encore
+Rust plus idiomatique.Par exemple, pour transmettre des servomoteurs l'informatique enverra des
+messages contenant des <a href="../../librobot/transmission/servo/struct.ServoGroup.html" title="`servo::ServoGroup`"><code>servo::ServoGroup</code></a>.</p>
+<h1 id="forme-dune-frame" class="section-header"><a href="#forme-dune-frame">Forme d'une Frame</a></h1>
+<p><em><strong>TODO</strong></em></p>
+<h1 id="exemple" class="section-header"><a href="#exemple">Exemple</a></h1>
+<p>Voici un exemple de communication PC-Elec :</p>
+<pre><code class="language-c++">+----------------+           +--------------------+
+|                |           |                    |
+|  Raspberry PI  |           |  Microcontrolleur  |
+|                |           |                    |
++--------+-------+           +----------+---------+
+         |                              |
+         |  AC DC AB BA 01 05 06 00     |
+         | +--------------------------&gt; |
+         |                              |
+         |  AC DC AB BB 01 00 00        |
+         | &lt;--------------------------+ |
+         |                              |
+         |  AC DC AB BA 05 46 02 11 77  |
+         | &lt;--------------------------+ |
+         |                              |
+         v(t)                           v(t)
+</code></pre>
+<p>Voici comment lire des messages et renvoyer des informations vers l'informatique pour les
+servomoteurs.</p>
+<pre><code class="language-c++"> +--------------------------+                  +---------------------+
+|                          |                  |                     |
+|       Conversion en      |                  | Conversion en Frame |
+|          Octets          +-----------------&gt;+                     |
+|                          |    ServoGroup    |    Frame::new()     |
+| ServoGroup::into_bytes() |                  |                     |
+|                          |                  +------+--------------+
++--------------------------+                         |
+                                                     |
+                                                     |
+                                       Connexion     |Donnée
+                                         Série       |à émettre
+                                           +         |
+                                           |         |
+                                           v         v
+                     +----------------+RX      TX+---+------------+-------------------+
+                     |                +-&lt;-&lt;-&lt;-&lt;-&lt;+Emission        |  Périphérique     |
+                     | Raspberry PI   |          +----------------+      UART         |
+                     |                +-&gt;-&gt;-&gt;-&gt;-&gt;+Réception       |                   |
+                     +----------------+TX      RX+---+------------+-------------------+
+                                                     |
+                                                     | Donnée
+                                                     | Reçue
+                                                     |
+                                                     v
++---------------------+                  +------------+-----------+
+|                     |                  |                        |
+|   Conversion de     |        Frame     | Extraction des données |
+|    la Frame en      +&lt;-----------------+  FrameReader.step()    |
+|     ServoGroup      |                  |                        |
+|                     |                  +------------------------+
+|  ServoGroup::new()  |
+|                     |
++---------+-----------+
+         |
+         |
+         |ServoGroup
+         |
+         v
+    +----+----+
+    |         |
+    | Gestion |
+    |   du    |
+    | Message |
+    |         |
+    +---------+
+</code></pre>
+</div><h2 id='modules' class='section-header'><a href="#modules">Modules</a></h2>
+<table><tr class='module-item'><td><a class="mod" href="eth/index.html" title='librobot::transmission::eth mod'>eth</a></td><td class='docblock-short'><p>Module pour la communication ethernet</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="id/index.html" title='librobot::transmission::id mod'>id</a></td><td class='docblock-short'><p>Regroupe les identifiants des cartes qui sont utilisés pour calculer les ports d'écoute et d'envoi
+lors de la communication par UPD</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="io/index.html" title='librobot::transmission::io mod'>io</a></td><td class='docblock-short'><p>Décrit l'API pour interagir avec la carte IO</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="navigation/index.html" title='librobot::transmission::navigation mod'>navigation</a></td><td class='docblock-short'><p>Décrit l'API pour interagir avec la carte déplacement</p>
+</td></tr><tr class='module-item'><td><a class="mod" href="servo/index.html" title='librobot::transmission::servo mod'>servo</a></td><td class='docblock-short'><p>Représentation haut-niveau d'un servo-moteur.</p>
+</td></tr></table><h2 id='enums' class='section-header'><a href="#enums">Enums</a></h2>
+<table><tr class='module-item'><td><a class="enum" href="enum.MessageKind.html" title='librobot::transmission::MessageKind enum'>MessageKind</a></td><td class='docblock-short'><p>Le type de message</p>
+</td></tr></table><h2 id='constants' class='section-header'><a href="#constants">Constants</a></h2>
+<table><tr class='module-item'><td><a class="constant" href="constant.FRAME_MAX_SIZE.html" title='librobot::transmission::FRAME_MAX_SIZE constant'>FRAME_MAX_SIZE</a></td><td class='docblock-short'><p>Taille maximale du message véhiculé par la frame</p>
+</td></tr></table><h2 id='traits' class='section-header'><a href="#traits">Traits</a></h2>
+<table><tr class='module-item'><td><a class="trait" href="trait.Jsonizable.html" title='librobot::transmission::Jsonizable trait'>Jsonizable</a></td><td class='docblock-short'><p>Traits utilitaires implémentés par toutes les structures que l'on envoie/récupère du réseau</p>
+</td></tr></table><h2 id='types' class='section-header'><a href="#types">Type Definitions</a></h2>
+<table><tr class='module-item'><td><a class="type" href="type.Message.html" title='librobot::transmission::Message type'>Message</a></td><td class='docblock-short'><p>Un message est un tableau de 256 octets.</p>
+</td></tr></table></section><section id="search" class="content hidden"></section><section class="footer"></section><aside id="help" class="hidden"><div><h1 class="hidden">Help</h1><div class="shortcuts"><h2>Keyboard Shortcuts</h2><dl><dt><kbd>?</kbd></dt><dd>Show this help dialog</dd><dt><kbd>S</kbd></dt><dd>Focus the search field</dd><dt><kbd>↑</kbd></dt><dd>Move up in search results</dd><dt><kbd>↓</kbd></dt><dd>Move down in search results</dd><dt><kbd>↹</kbd></dt><dd>Switch tab</dd><dt><kbd>&#9166;</kbd></dt><dd>Go to active search result</dd><dt><kbd>+</kbd></dt><dd>Expand all sections</dd><dt><kbd>-</kbd></dt><dd>Collapse all sections</dd></dl></div><div class="infos"><h2>Search Tricks</h2><p>Prefix searches with a type followed by a colon (e.g., <code>fn:</code>) to restrict the search to a given type.</p><p>Accepted types are: <code>fn</code>, <code>mod</code>, <code>struct</code>, <code>enum</code>, <code>trait</code>, <code>type</code>, <code>macro</code>, and <code>const</code>.</p><p>Search functions by type signature (e.g., <code>vec -> usize</code> or <code>* -> vec</code>)</p><p>Search multiple things at once by splitting your query with comma (e.g., <code>str,u8</code> or <code>String,struct:Vec,test</code>)</p></div></div></aside><script>window.rootPath = "../../";window.currentCrate = "librobot";</script><script src="../../aliases.js"></script><script src="../../main.js"></script><script defer src="../../search-index.js"></script></body></html>

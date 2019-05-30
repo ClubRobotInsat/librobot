@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["BuzzerState","Représente l'état du buzzer"],["IOState","L'état d'un port IO : On ou Off"],["TriggerState","L'état d'un interrupteur : en attente d'activation, ou activé"]],"struct":[["IO","L'état du robot d'un point de vue IO"],["Pneumatic","L'état du robot du point de vue pneumatique"]]});

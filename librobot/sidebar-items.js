@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["navigation","Ce module contient tout le code qui permets au robot de se déplacer sur la table."],["transmission","Ensemble des types, fonctions et traits qui permettent la communication electronique <-> informatique."],["units","Ce module contiens du code permettant de gérer les unités de longeurs"]]});
