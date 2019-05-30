@@ -75,13 +75,15 @@ impl PolarController {
     pub(crate) fn new(
         pos_kp: f32,
         pos_kd: f32,
+        pos_ki: f32,
         orient_kp: f32,
         orient_kd: f32,
+        orient_ki: f32,
         max_output: u16,
     ) -> Self {
         PolarController {
-            linear_control: PID::new(pos_kp, pos_kd, 0.0),
-            angular_control: PID::new(orient_kp, orient_kd, 0.0),
+            linear_control: PID::new(pos_kp, pos_kd, pos_ki),
+            angular_control: PID::new(orient_kp, orient_kd, orient_ki),
             max_output,
             linear_control_enabled: true,
             angular_control_enabled: true,
@@ -191,7 +193,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = PolarController::new(1.0, 1.0, 0.1, 1.0, 1.0, 0.1, 800);
 
         pid.set_linear_goal(9000.0);
         for _ in 0..999 {
@@ -225,7 +227,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = PolarController::new(1.0, 1.0, 0.1, 1.0, 1.0, 0.1, 800);
 
         pid.set_linear_goal(-9137.0);
         for _ in 0..999 {
@@ -259,7 +261,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = PolarController::new(1.0, 1.0, 0.1, 1.0, 1.0, 0.1, 800);
 
         pid.set_angular_goal(733.);
         for _ in 0..999 {
@@ -293,7 +295,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = PolarController::new(1.0, 1.0, 0.1, 1.0, 1.0, 0.1, 800);
 
         pid.set_angular_goal(-733.);
         for _ in 0..999 {
