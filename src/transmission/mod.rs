@@ -90,6 +90,7 @@ use arrayvec::ArrayVec;
 
 pub mod eth;
 
+pub mod color;
 pub mod io;
 pub mod navigation;
 pub mod servo;
