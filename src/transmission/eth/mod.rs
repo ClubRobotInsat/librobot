@@ -16,6 +16,11 @@ fn get_subnet() -> u8 {
     }
 }
 
+/// Renvoie l'IP de l'ordinateur embarqué (192.168.x.254)
+pub fn get_main_computer_ip() -> IpAddress {
+    IpAddress::new(192, 168, get_subnet(), 254)
+}
+
 /// Initialise la connexion ethernet pour permettre une communication
 /// a l'aide de la librairie W5500. La socket a utiliser pour lire
 /// les message est eth::SOCKET_UDP
