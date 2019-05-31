@@ -99,6 +99,8 @@ pub struct PIDParameters {
     pub orient_ki: f32,
     /// La valeur maximale en sortie
     pub max_output: u16,
+    /// Valeur maximale specifique à l'angle
+    pub max_angle_output: u16,
     /// Seuil de commande pour le bloquage
     pub command_threshold: u16,
     /// Seuil de distance pour le bloquage
@@ -120,6 +122,7 @@ impl Default for PIDParameters {
             orient_kd: 1.0,
             orient_ki: 1.0,
             max_output: 100,
+            max_angle_output: 100,
             command_threshold: 100,
             distance_threshold: 0.1,
         }
@@ -163,6 +166,7 @@ where
                 params.orient_kd,
                 params.orient_ki,
                 params.max_output,
+                params.max_angle_output,
             ),
             odometry: Odometry::new(),
             params: params.clone(),
@@ -329,6 +333,7 @@ impl PIDParameters {
             orient_kd: params_frame.orient_kd as f32 / RADIX,
             orient_ki: 0.0,
             max_output: base.max_output,
+            max_angle_output: base.max_angle_output,
             command_threshold: base.command_threshold,
             distance_threshold: base.distance_threshold,
         }

@@ -208,6 +208,5 @@ mod test {
         let data = "{\"blocked\":false,\"color\":\"Yellow\",\"control\":\"Position\",\"data\":511,\"id\":4,\
                 \"known_position\":511,\"mode\":\"Unblocking\",\"rotation\":\"CounterClockwise\"}";
         let servo2 = Servo::from_json_slice(data.as_bytes()).unwrap();
-
     }
 }

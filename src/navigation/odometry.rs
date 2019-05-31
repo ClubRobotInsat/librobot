@@ -272,13 +272,24 @@ mod test {
         println!("angle after: {}", angle_after);
 
         for i in 1..1025 {
-            println!("{} {} {}", odom.get_position().x.as_millimeters(), odom.get_position().y.as_millimeters(), odom.get_angle());
+            println!(
+                "{} {} {}",
+                odom.get_position().x.as_millimeters(),
+                odom.get_position().y.as_millimeters(),
+                odom.get_angle()
+            );
             odom.update(i + 4000 + 1025, i + 1025, &params);
         }
         // assert_eq!(angle_after, odom.get_angle());
         let val_after = odom.get_position().x.as_millimeters();
 
-        assert!(val_before > val_after, "{} > {} for {}", val_before, val_after, odom.get_angle());
+        assert!(
+            val_before > val_after,
+            "{} > {} for {}",
+            val_before,
+            val_after,
+            odom.get_angle()
+        );
     }
 
     // #[test]
