@@ -69,6 +69,8 @@ pub(crate) struct PolarController {
     linear_control_enabled: bool,
     /// Si `false` le robot n'est pas asservi en angulaire
     angular_control_enabled: bool,
+    pos_kd: f32,
+    orient_kd: f32,
 }
 
 impl PolarController {
@@ -87,6 +89,8 @@ impl PolarController {
             max_output,
             linear_control_enabled: true,
             angular_control_enabled: true,
+            pos_kd,
+            orient_kd,
         }
     }
 
@@ -150,6 +154,16 @@ impl PolarController {
         self.linear_control.update(lin_val);
         self.angular_control.update(ang_val);
 
+        self.linear_control.kd = if self.linear_control.current_error < 5.0 {
+            0.0
+        } else {
+            self.pos_kd
+        };
+        self.angular_control.kd = if self.angular_control.current_error < 17.45329 {
+            0.0
+        } else {
+            self.orient_kd
+        };
         // Calcul du PID
         let position_cmd = if self.linear_control_enabled {
             Self::clamp(self.linear_control.get_command(), self.max_output as f32)
