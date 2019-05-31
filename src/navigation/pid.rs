@@ -157,12 +157,12 @@ impl PolarController {
         self.linear_control.update(lin_val);
         self.angular_control.update(ang_val);
 
-        self.linear_control.kd = if self.linear_control.current_error < 5.0 {
+        self.linear_control.kd = if self.linear_control.current_error.abs() < 5.0 {
             0.0
         } else {
             self.pos_kd
         };
-        self.angular_control.kd = if self.angular_control.current_error < 17.45329 {
+        self.angular_control.kd = if self.angular_control.current_error.abs() < 8.726646 {
             0.0
         } else {
             self.orient_kd
