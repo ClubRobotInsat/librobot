@@ -90,16 +90,21 @@ pub struct PIDParameters {
     // PID
     /// Le coefficient proportionnel sur la position
     pub pos_kp: f32,
+    /// Le coefficient intégrateur sur la position
+    pub pos_ki: f32,
     /// Le coefficient dérivé sur la position
     pub pos_kd: f32,
     /// Le coefficient proportionnel sur la vitesse longitudinale
     pub pos_speed_kp: f32,
     /// Le coefficient proportionnel sur l'orientation
     pub orient_kp: f32,
+    /// Le coefficient intégral sur l'orientation
+    pub orient_ki: f32,
     /// Le coefficient dérivée sur l'orientation
     pub orient_kd: f32,
     /// Le coefficient proportionnel sur la vitesse angulaire
     pub orient_speed_kp: f32,
+
     /// Temps d'échantillonnage en millisecondes
     pub te: f32,
     /// Vitesse longitudinale max en m/s
@@ -110,8 +115,11 @@ pub struct PIDParameters {
     pub max_lin_acc: f32,
     /// maximum acceleration en rad/s^2
     pub max_ang_acc: f32,
+
     /// La valeur maximale en sortie
     pub max_output: u16,
+    /// Valeur maximale specifique à l'angle
+    pub max_angle_output: u16,
 
     // Bloquage
     /// Seuil de commande pour le bloquage
@@ -129,10 +137,12 @@ impl Default for PIDParameters {
             ticks_per_turn: 1024,
             inter_axial_length: 100.0,
             pos_kp: 1.0,
+            pos_ki: 1.0,
             pos_kd: 0.0,
             pos_speed_kp: 100.0,
             orient_kp: 1.0,
-            orient_kd: 0.0,
+            orient_ki: 1.0,
+            orient_kd: 1.0,
             orient_speed_kp: 100.0,
             max_lin_speed: 0.45,
             max_ang_speed: 0.20,
@@ -140,6 +150,7 @@ impl Default for PIDParameters {
             max_ang_acc: 1.0,
             te: 1.0,
             max_output: 100,
+            max_angle_output: 100,
             command_threshold: 100,
             distance_threshold: 0.1,
         }
@@ -177,10 +188,15 @@ where
         RealWorldPid {
             internal_pid: PolarController::new(
                 params.pos_kp,
+                params.pos_ki,
+                params.pos_kd,
                 params.orient_kp,
+                params.orient_ki,
+                params.orient_kd,
                 params.pos_speed_kp,
                 params.orient_speed_kp,
                 params.max_output,
+                params.max_angle_output,
                 params.te,
                 params.max_lin_speed,
                 params.max_ang_speed,
@@ -350,8 +366,10 @@ impl PIDParameters {
             ticks_per_turn: base.ticks_per_turn,
             inter_axial_length: params_frame.inter_axial_length as f32 / 10.0,
             pos_kp: params_frame.pos_kp as f32 / RADIX,
+            pos_ki: 0.0,
             pos_kd: params_frame.pos_kd as f32 / RADIX,
             orient_kp: params_frame.orient_kp as f32 / RADIX,
+            orient_ki: 0.0,
             orient_kd: params_frame.orient_kd as f32 / RADIX,
             ..base.clone()
         }
@@ -555,8 +573,10 @@ mod test {
             inter_axial_length: 300.0,
             pos_kp: 1.0,
             pos_kd: 0.0,
+            pos_ki: 0.1,
             orient_kp: 1.0,
             orient_kd: 0.0,
+            orient_ki: 0.1,
             max_output: 100,
             ..Default::default()
         };

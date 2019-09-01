@@ -90,6 +90,7 @@ use arrayvec::ArrayVec;
 
 pub mod eth;
 
+pub mod color;
 pub mod io;
 pub mod navigation;
 pub mod servo;
@@ -118,6 +119,9 @@ pub mod id {
 
     /// L'ID de la carte pneumatique
     pub const ID_PNEUMATIC: u16 = 5;
+
+    /// L'ID de la carte couleur
+    pub const ID_COLOR: u16 = 6;
 
     /// L'ID des paramètres de la navigation
     pub const ID_NAVIGATION_PARAMETERS: u16 = 10;

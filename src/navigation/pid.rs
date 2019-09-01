@@ -70,6 +70,8 @@ pub(crate) struct PolarController {
     current_command: (f32, f32),
 
     max_output: u16,
+    max_angle_output: u16,
+
     te: f32,
     max_lin_speed: f32,
     max_ang_speed: f32,
@@ -79,15 +81,23 @@ pub(crate) struct PolarController {
     linear_control_enabled: bool,
     /// Si `false` le robot n'est pas asservi en angulaire
     angular_control_enabled: bool,
+
+    pos_kd: f32,
+    orient_kd: f32,
 }
 
 impl PolarController {
     pub(crate) fn new(
         pos_kp: f32,
+        pos_ki: f32,
+        pos_kd: f32,
         orient_kp: f32,
+        orient_ki: f32,
+        orient_kd: f32,
         pos_speed_kp: f32,
         orient_speed_kp: f32,
         max_output: u16,
+        max_angle_output: u16,
         te: f32,
         max_lin_speed: f32,
         max_ang_speed: f32,
@@ -95,12 +105,13 @@ impl PolarController {
         max_ang_acc: f32,
     ) -> Self {
         PolarController {
-            linear_control: PID::new(pos_kp, 0.0, 0.0),
-            angular_control: PID::new(orient_kp, 0.0, 0.0),
+            linear_control: PID::new(pos_kp, pos_kd, pos_ki),
+            angular_control: PID::new(orient_kp, orient_kd, orient_ki),
             linear_speed_control: PID::new(pos_speed_kp, 0.0, 0.0),
             angular_speed_control: PID::new(orient_speed_kp, 0.0, 0.0),
             current_command: (0.0, 0.0),
             max_output,
+            max_angle_output,
             te,
             max_lin_speed,
             max_ang_speed,
@@ -108,6 +119,8 @@ impl PolarController {
             max_ang_acc: max_ang_acc / 1000.0,
             linear_control_enabled: true,
             angular_control_enabled: true,
+            pos_kd,
+            orient_kd,
         }
     }
 
@@ -167,9 +180,19 @@ impl PolarController {
         if speed.abs() < max_speed {
             speed
         } else if speed < 0. {
-            - max_speed
+            -max_speed
         } else {
             max_speed
+        }
+    }
+
+    pub(crate) fn clamp(val: f32, threshold: f32) -> f32 {
+        if val > threshold {
+            threshold
+        } else if val < -threshold {
+            -threshold
+        } else {
+            val
         }
     }
 
@@ -181,12 +204,34 @@ impl PolarController {
         let lin_speed = (lin_val - self.linear_control.current) / self.te;
         let ang_speed = (ang_val - self.angular_control.current) / self.te;
 
-            // Calcul du PID
+        // Suppression du Kd si l'erreur est inferieure à un certain seuil
+        self.linear_control.kd = if self.linear_control.current_error.abs() < 5.0 {
+            0.0
+        } else {
+            self.pos_kd
+        };
+        self.angular_control.kd = if self.angular_control.current_error.abs() < 8.726646 {
+            0.0
+        } else {
+            self.orient_kd
+        };
+
+        // Calcul du PID
         self.linear_control.update(lin_val);
         self.angular_control.update(ang_val);
 
-        let lin_speed_goal = Self::clamp_speed(self.linear_control.get_command(), self.linear_speed_control.current, self.max_lin_speed, self.max_ang_acc * self.te);
-        let ang_speed_goal = Self::clamp_speed(self.angular_control.get_command(), self.angular_speed_control.current, self.max_ang_speed, self.max_ang_acc * self.te);
+        let lin_speed_goal = Self::clamp_speed(
+            self.linear_control.get_command(),
+            self.linear_speed_control.current,
+            self.max_lin_speed,
+            self.max_ang_acc * self.te,
+        );
+        let ang_speed_goal = Self::clamp_speed(
+            self.angular_control.get_command(),
+            self.angular_speed_control.current,
+            self.max_ang_speed,
+            self.max_ang_acc * self.te,
+        );
 
         self.linear_speed_control.set_goal(lin_speed_goal);
         self.angular_speed_control.set_goal(ang_speed_goal);
@@ -205,8 +250,24 @@ impl PolarController {
             0.0
         };
 
-        let left_cmd = - lin_speed_cmd + ang_speed_cmd;
-        let right_cmd = - lin_speed_cmd - ang_speed_cmd;
+        ///// THIS PART MAY NOT BE USEFUL ANYMORE
+        let position_cmd = if self.linear_control_enabled {
+            Self::clamp(self.linear_control.get_command(), self.max_output as f32)
+        } else {
+            0.0
+        };
+        let orientation_cmd = if self.angular_control_enabled {
+            Self::clamp(
+                self.angular_control.get_command(),
+                self.max_angle_output as f32,
+            )
+        } else {
+            0.0
+        };
+        /////
+
+        let left_cmd = -lin_speed_cmd + ang_speed_cmd;
+        let right_cmd = -lin_speed_cmd - ang_speed_cmd;
 
         // Truncate result
         (
@@ -224,6 +285,12 @@ mod test {
     use crate::navigation::motor::test::DummyMotor;
     use crate::navigation::pid::PolarController;
 
+    fn create_controller() -> PolarController {
+        PolarController::new(
+            1.0, 1.0, 0.1, 1.0, 1.0, 0.1, 1.0, 1.0, 800, 800, 1.0, 0.5, 0.5, 1.0, 1.0,
+        )
+    }
+
     fn get_qei<T>(qei: &mut QeiManager<T>) -> i64
     where
         T: Qei,
@@ -239,7 +306,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = create_controller();
 
         pid.set_linear_goal(9000.0);
         for _ in 0..999 {
@@ -273,7 +340,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = create_controller();
 
         pid.set_linear_goal(-9137.0);
         for _ in 0..999 {
@@ -307,7 +374,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = create_controller();
 
         pid.set_angular_goal(733.);
         for _ in 0..999 {
@@ -341,7 +408,7 @@ mod test {
         let mut motor_right = DummyMotor::new();
         let mut qei_left = QeiManager::new(motor_left.clone());
         let mut qei_right = QeiManager::new(motor_right.clone());
-        let mut pid = PolarController::new(1.0, 1.0, 1.0, 1.0, 800);
+        let mut pid = create_controller();
 
         pid.set_angular_goal(-733.);
         for _ in 0..999 {

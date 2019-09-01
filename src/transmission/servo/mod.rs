@@ -57,8 +57,8 @@ impl Jsonizable for Servo {
 /// Un ensemble de au plus 8 servos-moteurs
 #[derive(PartialEq, Debug, Clone, Serialize, Deserialize)]
 pub struct ServoGroup {
-    /// Vecteur d'au plus 8 servos-moteurs
-    pub servos: Servo,
+    /// Le vecteur de servos
+    pub servos: [Servo; 9],
 }
 
 /// Relation d'équivalence partielle pour le module `Servo2019`, utile pour le débug.
@@ -204,5 +204,9 @@ mod test {
         ;
         let servo2 = Servo::from_json_slice(data.as_bytes()).unwrap();
         assert_eq!(servo, servo2);
+
+        let data = "{\"blocked\":false,\"color\":\"Yellow\",\"control\":\"Position\",\"data\":511,\"id\":4,\
+                \"known_position\":511,\"mode\":\"Unblocking\",\"rotation\":\"CounterClockwise\"}";
+        let servo2 = Servo::from_json_slice(data.as_bytes()).unwrap();
     }
 }

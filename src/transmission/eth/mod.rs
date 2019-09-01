@@ -6,15 +6,32 @@ use w5500::*;
 /// La socket utilisee pour l'UDP
 pub const SOCKET_UDP: Socket = Socket::Socket0;
 
+fn get_subnet() -> u8 {
+    if cfg!(feature = "primary") {
+        1
+    } else if cfg!(feature = "secondary") {
+        2
+    } else {
+        unreachable!()
+    }
+}
+
+/// Renvoie l'IP de l'ordinateur embarqué (192.168.x.254)
+pub fn get_main_computer_ip() -> IpAddress {
+    IpAddress::new(192, 168, get_subnet(), 254)
+}
+
 /// Initialise la connexion ethernet pour permettre une communication
 /// a l'aide de la librairie W5500. La socket a utiliser pour lire
 /// les message est eth::SOCKET_UDP
 pub fn init_eth<E: core::fmt::Debug>(
     eth: &mut W5500,
     spi: &mut FullDuplex<u8, Error = E>,
-    mac: &MacAddress,
-    ip: &IpAddress,
+    mac: u8,
+    ip: u8,
 ) {
+    let ip = IpAddress::new(192, 168, get_subnet(), ip);
+    let mac = MacAddress::new(0x02, 0x01, 0x02, 0x03, 0x04 + get_subnet(), mac);
     //eth.set_mode(spi,false, false, false, true).unwrap();
     // using a 'locally administered' MAC address
     eth.init(spi).expect("Failed to initialize w5500");
@@ -23,7 +40,7 @@ pub fn init_eth<E: core::fmt::Debug>(
     eth.set_ip(spi, &ip).unwrap();
     eth.set_subnet(spi, &IpAddress::new(255, 255, 255, 0))
         .unwrap();
-    eth.set_gateway(spi, &IpAddress::new(192, 168, 1, 254))
+    eth.set_gateway(spi, &IpAddress::new(192, 168, get_subnet(), 254))
         .unwrap();
     //eth.reset_interrupt(spi, SOCKET_UDP, Interrupt::Received)
     //    .expect("Failed ot reset interrupts for W5500");
