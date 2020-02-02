@@ -12,7 +12,6 @@ pub(crate) struct PID {
     kp: f32,
     kd: f32,
     ki: f32,
-    /// Temps d'échantillonnage du PID
     I: f32,
     current: f32,
     current_error: f32,
@@ -27,7 +26,9 @@ impl PID {
             kd,
             ki,
             I: 0.0,
+            /// Current value of the controller
             current: 0.0,
+            /// Current error (error is current - goal)
             current_error: 0.0,
             goal: 0.0,
             command: 0.0,
@@ -51,10 +52,11 @@ impl PID {
     }
 
     pub(crate) fn update(&mut self, val: f32) {
-        let error = val - self.goal;
+        let error = self.goal - val;
         let d_error = error - self.current_error;
         self.I += error + self.current_error;
         self.command = error * self.kp + self.I * self.ki + d_error * self.kd;
+        self.current = val;
         self.current_error = error;
     }
 }
@@ -67,11 +69,13 @@ pub(crate) struct PolarController {
     linear_speed_control: PID,
     angular_speed_control: PID,
 
-    current_command: (f32, f32),
+    current_lin_command: f32,
+    current_ang_command: f32,
 
     max_output: u16,
     max_angle_output: u16,
 
+    /// Time between updates, in seconds
     te: f32,
     max_lin_speed: f32,
     max_ang_speed: f32,
@@ -109,7 +113,8 @@ impl PolarController {
             angular_control: PID::new(orient_kp, orient_kd, orient_ki),
             linear_speed_control: PID::new(pos_speed_kp, 0.0, 0.0),
             angular_speed_control: PID::new(orient_speed_kp, 0.0, 0.0),
-            current_command: (0.0, 0.0),
+            current_lin_command: 0.0,
+            current_ang_command: 0.0,
             max_output,
             max_angle_output,
             te,
@@ -171,26 +176,23 @@ impl PolarController {
         )
     }
 
-    /// Retourne `speed` si `abs(speed) < max_speed`, et `sgn(speed) * max_speed` sinon.
-    fn clamp_speed(speed: f32, last_speed: f32, max_speed: f32, max_acc: f32) -> f32 {
-        // Clamp according to max_acc
-        // TODO
-
-        // Clamp according to max speed
-        if speed.abs() < max_speed {
-            speed
-        } else if speed < 0. {
-            -max_speed
-        } else {
-            max_speed
-        }
+    pub(self) fn clamp_speed(
+        &self,
+        speed: f32,
+        last_speed: f32,
+        max_speed: f32,
+        max_acc: f32,
+    ) -> f32 {
+        let upbound = last_speed + max_acc * self.te;
+        let lowbound = last_speed - max_acc * self.te;
+        Self::clamp(Self::clamp(speed, lowbound, upbound), -max_speed, max_speed)
     }
 
-    pub(crate) fn clamp(val: f32, threshold: f32) -> f32 {
-        if val > threshold {
-            threshold
-        } else if val < -threshold {
-            -threshold
+    pub(crate) fn clamp(val: f32, min: f32, max: f32) -> f32 {
+        if val > max {
+            max
+        } else if val < min {
+            min
         } else {
             val
         }
@@ -220,17 +222,17 @@ impl PolarController {
         self.linear_control.update(lin_val);
         self.angular_control.update(ang_val);
 
-        let lin_speed_goal = Self::clamp_speed(
+        let lin_speed_goal = self.clamp_speed(
             self.linear_control.get_command(),
-            self.linear_speed_control.current,
+            lin_speed,
             self.max_lin_speed,
-            self.max_ang_acc * self.te,
+            self.max_lin_acc,
         );
-        let ang_speed_goal = Self::clamp_speed(
+        let ang_speed_goal = self.clamp_speed(
             self.angular_control.get_command(),
-            self.angular_speed_control.current,
+            ang_speed,
             self.max_ang_speed,
-            self.max_ang_acc * self.te,
+            self.max_ang_acc,
         );
 
         self.linear_speed_control.set_goal(lin_speed_goal);
@@ -239,40 +241,35 @@ impl PolarController {
         self.linear_speed_control.update(lin_speed);
         self.angular_speed_control.update(ang_speed);
 
-        let lin_speed_cmd = if self.linear_control_enabled {
-            self.linear_speed_control.get_command()
-        } else {
-            0.0
-        };
-        let ang_speed_cmd = if self.angular_control_enabled {
-            self.angular_speed_control.get_command()
-        } else {
-            0.0
-        };
-
-        ///// THIS PART MAY NOT BE USEFUL ANYMORE
-        let position_cmd = if self.linear_control_enabled {
-            Self::clamp(self.linear_control.get_command(), self.max_output as f32)
-        } else {
-            0.0
-        };
-        let orientation_cmd = if self.angular_control_enabled {
+        self.current_lin_command = if self.linear_control_enabled {
             Self::clamp(
-                self.angular_control.get_command(),
+                self.current_lin_command + self.linear_speed_control.get_command(),
+                -(self.max_output as f32),
+                self.max_output as f32,
+            )
+        } else {
+            0.0
+        };
+        self.current_ang_command = if self.angular_control_enabled {
+            Self::clamp(
+                self.current_ang_command + self.angular_speed_control.get_command(),
+                -(self.max_angle_output as f32),
                 self.max_angle_output as f32,
             )
         } else {
             0.0
         };
-        /////
-
-        let left_cmd = -lin_speed_cmd + ang_speed_cmd;
-        let right_cmd = -lin_speed_cmd - ang_speed_cmd;
 
         // Truncate result
         (
-            Command::truncate(left_cmd, self.max_output),
-            Command::truncate(right_cmd, self.max_output),
+            Command::truncate(
+                self.current_lin_command - self.current_ang_command,
+                self.max_output,
+            ),
+            Command::truncate(
+                self.current_lin_command + self.current_ang_command,
+                self.max_output,
+            ),
         )
     }
 }
@@ -282,12 +279,12 @@ mod test {
     use embedded_hal::Qei;
     use qei::QeiManager;
 
-    use crate::navigation::motor::test::DummyMotor;
+    use crate::navigation::motor::{test::DummyMotor, Command};
     use crate::navigation::pid::PolarController;
 
     fn create_controller() -> PolarController {
         PolarController::new(
-            1.0, 1.0, 0.1, 1.0, 1.0, 0.1, 1.0, 1.0, 800, 800, 1.0, 0.5, 0.5, 1.0, 1.0,
+            0.01, 0.0, 0.0, 0.01, 0.0, 0.0, 30.0, 30.0, 800, 800, 1.0, 50.0, 50.0, 100.0, 100.0,
         )
     }
 
@@ -298,6 +295,14 @@ mod test {
     {
         qei.sample_unwrap();
         qei.count() as i64
+    }
+
+    #[test]
+    fn clamp_speed() {
+        let pid = create_controller();
+
+        assert!((pid.clamp_speed(9000.0, 0.0, 50.0, 100.0) - 50.0).abs() < 0.001);
+        assert!((pid.clamp_speed(9000.0, 0.0, 50.0, 10.0) - 10.0).abs() < 0.001);
     }
 
     #[test]
@@ -314,6 +319,7 @@ mod test {
                 get_qei(&mut qei_left) as f32,
                 get_qei(&mut qei_right) as f32,
             );
+            // println!("{} {}", motor_left.get_real_position(), pid.linear_speed_control.goal);
             motor_left.apply_command(cmdl);
             motor_right.apply_command(cmdr);
             motor_left.update();
