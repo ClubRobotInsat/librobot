@@ -44,6 +44,14 @@ pub struct IO {
 
     /// L'état de la tirette
     pub tirette: TriggerState,
+
+    /// L'état des fins de courses
+    pub limit_left_down: TriggerState,
+    pub limit_left_middle: TriggerState,
+    pub limit_left_high: TriggerState,
+    pub limit_right_down: TriggerState,
+    pub limit_right_middle: TriggerState,
+    pub limit_right_high: TriggerState,
 }
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
