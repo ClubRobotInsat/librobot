@@ -55,13 +55,11 @@ pub struct IO {
 }
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize)]
-/// L'état du robot du point de vue pneumatique
-pub struct Pneumatic {
-    /// L'état des pompes (elles sont sur le même pin, même si il y en a 2)
-    pub pump: IOState,
-
-    /// L'état des vannes
-    pub valves: [IOState; 4],
+/// L'état des leds d'éclairages
+pub struct camera_led {
+    /// L'état des leds
+    pub camera_led_1: IOState,
+    pub camera_led_2: IOState,
 }
 
 impl Jsonizable for IO {
@@ -79,7 +77,7 @@ impl Jsonizable for IO {
     }
 }
 
-impl Jsonizable for Pneumatic {
+impl Jsonizable for camera_led {
     /// Désérialisation d'un JSON en `Servo`
     fn from_json_slice(slice: &[u8]) -> Result<Self, DError> {
         from_slice(slice)
@@ -99,6 +97,7 @@ mod tests {
     use super::*;
     use heapless::consts::U2048;
 
+    /*
     #[test]
     fn io_ser() {
         let a = Pneumatic {
@@ -115,5 +114,6 @@ mod tests {
         )
         .unwrap();
     }
+    */
 
 }
