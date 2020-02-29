@@ -62,7 +62,7 @@ where
     L: Qei<Count = u16>,
     R: Qei<Count = u16>,
 {
-    internal_pid: PolarController,
+    internal_pid: DoublePolarController,
     odometry: Odometry,
     params: PIDParameters,
     qei: (QeiManager<L>, QeiManager<R>),
@@ -186,7 +186,7 @@ where
     ///     * rayon d'une roue codeuse en mm
     pub fn new(qei_left: QeiManager<L>, qei_right: QeiManager<R>, params: &PIDParameters) -> Self {
         RealWorldPid {
-            internal_pid: PolarController::new(
+            internal_pid: DoublePolarController::new(
                 params.pos_kp,
                 params.pos_ki,
                 params.pos_kd,
@@ -210,6 +210,26 @@ where
             blocking: Blocking::new(params.command_threshold, params.distance_threshold),
         }
     }
+
+    /*pub fn new_legacy(qei_left: QeiManager<L>, qei_right: QeiManager<R>, params: &PIDParameters) -> Self {
+        RealWorldPid {
+            internal_pid: SimplePolarController::new(
+                params.pos_kp,
+                params.pos_kd,
+                params.pos_ki,
+                params.orient_kp,
+                params.orient_kd,
+                params.orient_ki,
+                params.max_output,
+                params.max_angle_output,
+            ),
+            odometry: Odometry::new(),
+            params: params.clone(),
+            qei: (qei_left, qei_right),
+            command: (Command::Front(0), Command::Front(0)),
+            blocking: Blocking::new(params.command_threshold, params.distance_threshold),
+        }
+    }*/
 
     /// Renvoie les paramètres actuels du déplacement.
     pub fn get_params(&self) -> &PIDParameters {

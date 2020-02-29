@@ -3,67 +3,14 @@
 use core::f32;
 
 use crate::navigation::motor::Command;
+use super::PID;
 
 #[allow(unused_imports)]
 use libm::F32Ext;
 
-#[allow(non_snake_case)]
-pub(crate) struct PID {
-    kp: f32,
-    kd: f32,
-    ki: f32,
-    I: f32,
-    current: f32,
-    current_error: f32,
-    goal: f32,
-    command: f32,
-}
-
-impl PID {
-    pub(crate) fn new(kp: f32, kd: f32, ki: f32) -> PID {
-        PID {
-            kp,
-            kd,
-            ki,
-            I: 0.0,
-            /// Current value of the controller
-            current: 0.0,
-            /// Current error (error is current - goal)
-            current_error: 0.0,
-            goal: 0.0,
-            command: 0.0,
-        }
-    }
-
-    pub(crate) fn set_goal(&mut self, goal: f32) {
-        self.goal = goal;
-    }
-
-    pub(crate) fn increment_goal(&mut self, inc: f32) {
-        self.goal += inc;
-    }
-
-    pub(crate) fn get_goal(&self) -> f32 {
-        self.goal
-    }
-
-    pub(crate) fn get_command(&self) -> f32 {
-        self.command
-    }
-
-    pub(crate) fn update(&mut self, val: f32) {
-        let error = self.goal - val;
-        let d_error = error - self.current_error;
-        self.I += error + self.current_error;
-        self.command = error * self.kp + self.I * self.ki + d_error * self.kd;
-        self.current = val;
-        self.current_error = error;
-    }
-}
-
 /// Controlleur composé d'un asservissement en position et d'un
 /// asservissement en angle.
-pub(crate) struct PolarController {
+pub(crate) struct DoublePolarController {
     linear_control: PID,
     angular_control: PID,
     linear_speed_control: PID,
@@ -90,7 +37,7 @@ pub(crate) struct PolarController {
     orient_kd: f32,
 }
 
-impl PolarController {
+impl DoublePolarController {
     pub(crate) fn new(
         pos_kp: f32,
         pos_ki: f32,
@@ -108,7 +55,7 @@ impl PolarController {
         max_lin_acc: f32,
         max_ang_acc: f32,
     ) -> Self {
-        PolarController {
+        DoublePolarController {
             linear_control: PID::new(pos_kp, pos_kd, pos_ki),
             angular_control: PID::new(orient_kp, orient_kd, orient_ki),
             linear_speed_control: PID::new(pos_speed_kp, 0.0, 0.0),
@@ -280,10 +227,10 @@ mod test {
     use qei::QeiManager;
 
     use crate::navigation::motor::{test::DummyMotor, Command};
-    use crate::navigation::pid::PolarController;
+    use crate::navigation::pid::DoublePolarController;
 
-    fn create_controller() -> PolarController {
-        PolarController::new(
+    fn create_controller() -> DoublePolarController {
+        DoublePolarController::new(
             0.01, 0.0, 0.0, 0.01, 0.0, 0.0, 30.0, 30.0, 800, 800, 1.0, 50.0, 50.0, 100.0, 100.0,
         )
     }
